@@ -1,10 +1,36 @@
 {
-  "updated_at": "2026-10-09T12:42:28.883646+00:00",
+  "updated_at": "2026-10-09T13:28:26.359834+00:00",
   "macro": {
     "state": "분석 대기",
-    "reason": "거시지표 분석은 아직 연결되지 않았습니다.",
+    "reason": "거시지표 수집은 아직 연결되지 않았습니다.",
     "values": {}
   },
-  "signals": [],
-  "warning": "근사 신호입니다. 원본 Pine Script와 일치 여부는 검증되지 않았습니다."
+  "signals": [
+    {
+      "ticker": "SBUX",
+      "name": "Starbucks Corporation",
+      "signal": "단기조정",
+      "date": "2026-10-08",
+      "close": 93.21,
+      "rsi14": 38.9,
+      "percent_b": 0.147,
+      "drawdown60_pct": -14.08
+    },
+    {
+      "ticker": "REGN",
+      "name": "Regeneron Pharmaceuticals, Inc.",
+      "signal": "단기조정",
+      "date": "2026-10-08",
+      "close": 739.57,
+      "rsi14": 32.71,
+      "percent_b": 0.22,
+      "drawdown60_pct": -13.2
+    }
+  ],
+  "scan_meta": {
+    "universe": "임시 종목 목록 30개",
+    "symbols_attempted": 30,
+    "symbols_failed": 0,
+    "warning": "근사 신호이며 원본 Pine Script와의 일치 여부는 검증되지 않았습니다."
+  }
 }

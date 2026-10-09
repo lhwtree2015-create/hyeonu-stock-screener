@@ -2,5 +2,30 @@
   {
     "scan_date": "2026-10-09",
     "signals": []
+  },
+  {
+    "scan_date": "2026-10-09",
+    "signals": [
+      {
+        "ticker": "SBUX",
+        "name": "Starbucks Corporation",
+        "signal": "단기조정",
+        "date": "2026-10-08",
+        "close": 93.21,
+        "rsi14": 38.9,
+        "percent_b": 0.147,
+        "drawdown60_pct": -14.08
+      },
+      {
+        "ticker": "REGN",
+        "name": "Regeneron Pharmaceuticals, Inc.",
+        "signal": "단기조정",
+        "date": "2026-10-08",
+        "close": 739.57,
+        "rsi14": 32.71,
+        "percent_b": 0.22,
+        "drawdown60_pct": -13.2
+      }
+    ]
   }
 ]
