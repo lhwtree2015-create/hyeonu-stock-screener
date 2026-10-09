@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-09T23:34:39+09:00",
+  "updated_at": "2026-10-09T23:38:53+09:00",
   "source": "Yahoo Finance",
   "ticker_count": 30,
   "signals": [
@@ -8,189 +8,189 @@
       "name": "T-Mobile US, Inc.",
       "signal": "급락",
       "date": "2026-10-09",
-      "close": 154.27,
-      "drawdown": -20.69,
-      "rsi14": 35.92
+      "close": 153.81,
+      "drawdown": -20.93,
+      "rsi14": 35.5
     },
     {
       "ticker": "BKNG",
       "name": "Booking Holdings Inc.",
       "signal": "급락",
       "date": "2026-10-09",
-      "close": 159.43,
-      "drawdown": -25.46,
-      "rsi14": 36.84
+      "close": 159.65,
+      "drawdown": -25.36,
+      "rsi14": 37.07
     },
     {
       "ticker": "AVGO",
       "name": "Broadcom Inc.",
       "signal": "조정",
       "date": "2026-10-09",
-      "close": 364.48,
-      "drawdown": -14.64,
-      "rsi14": 50.99
+      "close": 363.57,
+      "drawdown": -14.85,
+      "rsi14": 50.5
     },
     {
       "ticker": "NFLX",
       "name": "Netflix, Inc.",
       "signal": "조정",
       "date": "2026-10-09",
-      "close": 71.26,
-      "drawdown": -13.86,
-      "rsi14": 42.49
+      "close": 71.33,
+      "drawdown": -13.77,
+      "rsi14": 42.72
     },
     {
       "ticker": "ADBE",
       "name": "Adobe Inc.",
       "signal": "조정",
       "date": "2026-10-09",
-      "close": 243.61,
-      "drawdown": -16.8,
-      "rsi14": 44.65
+      "close": 244.35,
+      "drawdown": -16.54,
+      "rsi14": 45.38
     },
     {
       "ticker": "PEP",
       "name": "PepsiCo, Inc.",
       "signal": "조정",
       "date": "2026-10-09",
-      "close": 125.58,
-      "drawdown": -12.27,
-      "rsi14": 39.14
+      "close": 125.8,
+      "drawdown": -12.11,
+      "rsi14": 39.62
     },
     {
       "ticker": "INTC",
       "name": "Intel Corporation",
       "signal": "조정",
       "date": "2026-10-09",
-      "close": 106.5,
-      "drawdown": -16.4,
-      "rsi14": 30.34
+      "close": 106.18,
+      "drawdown": -16.65,
+      "rsi14": 30.09
     },
     {
       "ticker": "QCOM",
       "name": "QUALCOMM Incorporated",
       "signal": "조정",
       "date": "2026-10-09",
-      "close": 174.28,
-      "drawdown": -13.71,
-      "rsi14": 29.84
+      "close": 173.55,
+      "drawdown": -14.07,
+      "rsi14": 29.41
     },
     {
       "ticker": "HON",
       "name": "Honeywell International Inc.",
       "signal": "조정",
       "date": "2026-10-09",
-      "close": 207.18,
-      "drawdown": -16.48,
-      "rsi14": 51.57
+      "close": 206.73,
+      "drawdown": -16.66,
+      "rsi14": 50.58
     },
     {
       "ticker": "INTU",
       "name": "Intuit Inc.",
       "signal": "조정",
       "date": "2026-10-09",
-      "close": 305.71,
-      "drawdown": -16.97,
-      "rsi14": 51.92
+      "close": 306.2,
+      "drawdown": -16.84,
+      "rsi14": 52.21
     },
     {
       "ticker": "SBUX",
       "name": "Starbucks Corporation",
       "signal": "조정",
       "date": "2026-10-09",
-      "close": 91.36,
-      "drawdown": -15.79,
-      "rsi14": 36.08
+      "close": 91.46,
+      "drawdown": -15.69,
+      "rsi14": 36.39
     },
     {
       "ticker": "REGN",
       "name": "Regeneron Pharmaceuticals, Inc.",
       "signal": "조정",
       "date": "2026-10-09",
-      "close": 747.85,
-      "drawdown": -12.23,
-      "rsi14": 30.02
+      "close": 746.28,
+      "drawdown": -12.41,
+      "rsi14": 29.14
     },
     {
       "ticker": "AMZN",
       "name": "Amazon.com, Inc.",
       "signal": "단기조정",
       "date": "2026-10-09",
-      "close": 258.15,
-      "drawdown": -9.11,
-      "rsi14": 49.62
+      "close": 259.11,
+      "drawdown": -8.77,
+      "rsi14": 50.83
     },
     {
       "ticker": "META",
       "name": "Meta Platforms, Inc.",
       "signal": "단기조정",
       "date": "2026-10-09",
-      "close": 721.07,
-      "drawdown": -7.27,
-      "rsi14": 44.47
+      "close": 721.49,
+      "drawdown": -7.21,
+      "rsi14": 44.59
     },
     {
       "ticker": "GOOGL",
       "name": "Alphabet Inc.",
       "signal": "단기조정",
       "date": "2026-10-09",
-      "close": 350.85,
-      "drawdown": -7.04,
-      "rsi14": 46.05
+      "close": 351.64,
+      "drawdown": -6.83,
+      "rsi14": 46.86
     },
     {
       "ticker": "GOOG",
       "name": "Alphabet Inc.",
       "signal": "단기조정",
       "date": "2026-10-09",
-      "close": 347.33,
-      "drawdown": -7.4,
-      "rsi14": 46.63
+      "close": 348.12,
+      "drawdown": -7.19,
+      "rsi14": 47.41
     },
     {
       "ticker": "AMD",
       "name": "Advanced Micro Devices, Inc.",
       "signal": "단기조정",
       "date": "2026-10-09",
-      "close": 616.75,
-      "drawdown": -5.03,
-      "rsi14": 50.45
+      "close": 613.95,
+      "drawdown": -5.46,
+      "rsi14": 49.43
     },
     {
       "ticker": "CSCO",
       "name": "Cisco Systems, Inc.",
       "signal": "단기조정",
       "date": "2026-10-09",
-      "close": 116.43,
-      "drawdown": -5.65,
-      "rsi14": 62.24
+      "close": 116.29,
+      "drawdown": -5.76,
+      "rsi14": 62.0
     },
     {
       "ticker": "AMGN",
       "name": "Amgen Inc.",
       "signal": "단기조정",
       "date": "2026-10-09",
-      "close": 412.17,
-      "drawdown": -7.19,
-      "rsi14": 61.77
+      "close": 411.15,
+      "drawdown": -7.42,
+      "rsi14": 61.28
     },
     {
       "ticker": "VRTX",
       "name": "Vertex Pharmaceuticals Incorporated",
       "signal": "단기조정",
       "date": "2026-10-09",
-      "close": 512.65,
-      "drawdown": -8.12,
-      "rsi14": 51.68
+      "close": 511.17,
+      "drawdown": -8.39,
+      "rsi14": 50.4
     },
     {
       "ticker": "LRCX",
       "name": "Lam Research Corporation",
       "signal": "단기조정",
       "date": "2026-10-09",
-      "close": 320.83,
-      "drawdown": -7.67,
-      "rsi14": 61.64
+      "close": 319.7,
+      "drawdown": -8.0,
+      "rsi14": 60.85
     }
   ],
   "macro": {
@@ -198,25 +198,25 @@
     "reason": "나스닥-100, S&P 500, VIX, 비트코인 데이터를 수집했습니다. 이 상태는 매수·매도 판단 등급이 아니라 데이터 연결 상태입니다.",
     "values": {
       "나스닥-100": {
-        "value": 30843.6152,
+        "value": 30835.7773,
         "updated_at": "2026-10-09",
         "source": "Yahoo Finance",
         "symbol": "^NDX"
       },
       "S&P 500": {
-        "value": 7790.5698,
+        "value": 7792.1201,
         "updated_at": "2026-10-09",
         "source": "Yahoo Finance",
         "symbol": "^GSPC"
       },
       "VIX": {
-        "value": 15.1,
+        "value": 15.04,
         "updated_at": "2026-10-09",
         "source": "Yahoo Finance",
         "symbol": "^VIX"
       },
       "비트코인": {
-        "value": 83211.5078,
+        "value": 83039.9062,
         "updated_at": "2026-10-09",
         "source": "Yahoo Finance",
         "symbol": "BTC-USD"
