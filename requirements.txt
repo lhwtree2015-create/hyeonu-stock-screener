@@ -1,1 +1,3 @@
-yfinance>=0.2.54\npandas>=2.2\nlxml>=5.0\n
+yfinance>=0.2.50
+pandas>=2.2.0
+lxml>=5.0.0
