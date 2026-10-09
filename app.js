@@ -1,9 +1,214 @@
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];let D={};const rank={"패닉셀":4,"급락":3,"조정":2,"단기조정":1};const fmt=v=>typeof v==="number"&&Number.isFinite(v)?v.toLocaleString("ko-KR",{maximumFractionDigits:2}):"—";const pct=v=>typeof v==="number"&&Number.isFinite(v)?`${v>0?"+":""}${fmt(v)}%`:"—";
-function page(id){$$(".page").forEach(x=>x.classList.toggle("active",x.id==="page-"+id));$$(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===id));window.scrollTo(0,0)}$$(".tab").forEach(b=>b.onclick=()=>page(b.dataset.page));$("#backScanner").onclick=()=>page("scanner");
-async function load(){try{let r=await fetch("data/latest.json?"+Date.now());if(!r.ok)throw Error();D=await r.json();$("#updated").textContent=D.generated_at||"업데이트 시각 미확인";render()}catch(e){$("#updated").textContent="데이터 대기";$("#scannerStatus").textContent="아직 분석 데이터가 없습니다. GitHub Actions를 실행한 후 실제 데이터가 표시됩니다."}}
-function render(){let m=D.macro||{};$("#macroMetrics").innerHTML=[["나스닥-100",m.ndx],["S&P 500",m.sp500],["VIX",m.vix],["비트코인",m.btc]].map(([n,x])=>`<div class="metric"><span>${n}</span><b>${x?.value!=null?fmt(x.value):"—"}</b><small>${x?.change_pct!=null?pct(x.change_pct):"데이터 미확인"}</small></div>`).join("");$("#marketState").innerHTML=`<div class="state-title">시장 상태</div><h3>${m.market_state?.label||"판단 가능한 데이터 부족"}</h3><p>${(m.market_state?.reasons||["시장 데이터가 충분히 수집되면 근거를 표시합니다."]).join(" · ")}</p>`;$("#scanCount").textContent=(D.signals||[]).length+"개 신호";$("#scannerStatus").textContent=D.status_message||"분석 상태 미확인";signals();performance();history()}
-function signals(){let a=[...(D.signals||[])],q=$("#search").value.toLowerCase().trim(),f=$("#signalFilter").value,s=$("#sort").value;a=a.filter(x=>(!q||`${x.ticker} ${x.name||""}`.toLowerCase().includes(q))&&(f==="all"||x.signal===f));a.sort((x,y)=>s==="ticker"?x.ticker.localeCompare(y.ticker):s==="drop"?(y.drawdown_pct||0)-(x.drawdown_pct||0):(rank[y.signal]||0)-(rank[x.signal]||0));$("#signalList").innerHTML=a.length?a.map(x=>`<button class="signal-card" data-t="${x.ticker}"><div><div class="ticker">${x.ticker}</div><div class="company">${x.name||"회사명 미확인"} · ${x.price_date||""}</div><div class="company">종가 ${fmt(x.close)} · 고점 대비 ${pct(x.drawdown_pct)}</div></div><div class="right"><span class="signal-badge badge-${x.signal}">${x.signal}</span><div class="company">RSI ${fmt(x.rsi14)}</div></div></button>`).join(""):`<div class="panel empty">표시할 신호가 없습니다. 데이터가 없거나 수집에 실패했을 때도 임의의 신호를 만들지 않습니다.</div>`;$$(".signal-card").forEach(b=>b.onclick=()=>detail(b.dataset.t))}
-$("#search").oninput=signals;$("#signalFilter").onchange=signals;$("#sort").onchange=signals;
-function detail(t){let x=(D.signals||[]).find(a=>a.ticker===t)||(D.stocks||[]).find(a=>a.ticker===t);if(!x)return;page("detail");$("#detailTitle").textContent=x.ticker+" · "+(x.name||"");let fields=[["신호",x.signal||"신호 없음"],["종가",fmt(x.close)],["고점 대비 하락률",pct(x.drawdown_pct)],["RSI(14)",fmt(x.rsi14)],["RSI 5일 변화",fmt(x.rsi5_change)],["20일 저점 대비 반등",pct(x.rebound_from_20d_low)],["MA20 거리",pct(x.ma20_distance_pct)],["MA50 거리",pct(x.ma50_distance_pct)],["MA200 거리",pct(x.ma200_distance_pct)],["거래량/20일 평균",x.volume_ratio!=null?fmt(x.volume_ratio)+"배":"—"]];$("#detailBody").innerHTML=`<div class="muted">기준일 ${x.price_date||"미확인"} · 통화 ${x.currency||"USD"}</div><div class="chart-placeholder">차트 데이터 연결 및 검증 후 캔들스틱·선 차트를 표시합니다. 현재 확인되지 않은 차트는 그리지 않습니다.</div><div class="detail-grid">${fields.map(([a,b])=>`<div class="detail-item"><span>${a}</span><b>${b}</b></div>`).join("")}</div><div class="panel"><h3>신호 근거</h3><p>${(x.reasons||["실제 근거 데이터 없음"]).join(" · ")}</p></div>`}
-function performance(){let p=D.performance||{};$("#performanceSummary").innerHTML=[5,10,20].map(n=>{let x=p[n]||{};return `<div class="metric"><span>${n}거래일</span><b>${x.avg_return_pct!=null?pct(x.avg_return_pct):"—"}</b><small>승률 ${x.win_rate_pct!=null?pct(x.win_rate_pct):"—"} · 확정 ${x.completed||0} · 미확정 ${x.pending||0}</small></div>`}).join("")}
-function history(){let a=D.history||[];$("#historyList").innerHTML=a.length?`<table><thead><tr><th>날짜</th><th>티커</th><th>신호</th><th>진입가</th><th>5일</th><th>10일</th><th>20일</th></tr></thead><tbody>${a.slice().reverse().slice(0,100).map(x=>`<tr><td>${x.signal_date}</td><td>${x.ticker}</td><td>${x.signal}</td><td>${fmt(x.entry_price)}</td>${[5,10,20].map(n=>`<td>${x["return_"+n+"d_pct"]!=null?pct(x["return_"+n+"d_pct"]):"대기"}</td>`).join("")}</tr>`).join("")}</tbody></table>`:"아직 기록이 없습니다."}load();
+
+import os
+import json
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+import pandas as pd
+import yfinance as yf
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(ROOT, "data")
+os.makedirs(DATA_DIR, exist_ok=True)
+
+ET = ZoneInfo("America/New_York")
+now = datetime.now(ET)
+
+# GitHub Actions 수동 실행은 시간 제한을 적용하지 않습니다.
+force = os.getenv("FORCE_SCAN") == "1"
+
+if not force and (
+    now.weekday() >= 5
+    or not (now.hour == 3 and 15 <= now.minute <= 59)
+):
+    print("예약 실행 시간이 아니므로 건너뜁니다:", now)
+    raise SystemExit(0)
+
+# 임시 종목 목록: 나스닥-100 전체가 아닌 일부 종목입니다.
+TICKERS = [
+    "AAPL", "MSFT", "NVDA", "AMZN", "META",
+    "AVGO", "GOOGL", "GOOG", "COST", "NFLX",
+    "TSLA", "AMD", "ADBE", "PEP", "CSCO",
+    "QCOM", "INTC", "AMAT", "TXN", "INTU",
+    "AMGN", "HON", "BKNG", "SBUX", "ADP",
+    "GILD", "VRTX", "ADI", "REGN", "PANW"
+]
+
+
+def download(ticker):
+    try:
+        df = yf.download(
+            ticker,
+            period="1y",
+            interval="1d",
+            auto_adjust=True,
+            progress=False,
+            threads=False
+        )
+
+        if df is None or df.empty:
+            print("주가 데이터 없음:", ticker)
+            return None
+
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+
+        return df.dropna(subset=["Close"])
+
+    except Exception as exc:
+        print("주가 다운로드 실패:", ticker, str(exc)[:150])
+        return None
+
+
+def calculate_signal(df):
+    if df is None or len(df) < 60:
+        return None
+
+    close = df["Close"].astype(float)
+    low = df["Low"].astype(float)
+
+    avg20 = close.rolling(20).mean()
+    std20 = close.rolling(20).std(ddof=0)
+
+    upper = avg20 + 2 * std20
+    lower = avg20 - 2 * std20
+
+    percent_b = (
+        (close - lower) / (upper - lower).replace(0, float("nan"))
+    )
+
+    change = close.diff()
+    gain = change.clip(lower=0).rolling(14).mean()
+    loss = (-change.clip(upper=0)).rolling(14).mean()
+
+    rs = gain / loss.replace(0, float("nan"))
+    rsi = 100 - (100 / (1 + rs))
+
+    drawdown = close / close.rolling(60).max() - 1
+
+    i = len(df) - 1
+
+    values = [
+        rsi.iloc[i],
+        percent_b.iloc[i],
+        drawdown.iloc[i]
+    ]
+
+    if any(pd.isna(value) for value in values):
+        return None
+
+    r = float(rsi.iloc[i])
+    b = float(percent_b.iloc[i])
+    dd = float(drawdown.iloc[i])
+
+    signal = None
+
+    # 강한 신호부터 우선 표시합니다.
+    if dd <= -0.23 and r <= 28 and b <= -0.05:
+        signal = "패닉셀"
+    elif dd <= -0.17 and r <= 33 and b <= 0.15:
+        signal = "급락"
+    elif r <= 35 and b <= 0.20:
+        signal = "조정"
+    elif r <= 42 and b <= 0.25:
+        signal = "단기조정"
+
+    if signal is None:
+        return None
+
+    return {
+        "signal": signal,
+        "date": str(df.index[-1].date()),
+        "close": round(float(close.iloc[i]), 4),
+        "rsi14": round(r, 2),
+        "percent_b": round(b, 3),
+        "drawdown60_pct": round(dd * 100, 2)
+    }
+
+
+def main():
+    signals = []
+    failures = 0
+
+    print("스캔 시작:", len(TICKERS), "개 종목")
+
+    for ticker in TICKERS:
+        df = download(ticker)
+
+        if df is None:
+            failures += 1
+            continue
+
+        result = calculate_signal(df)
+
+        if result:
+            try:
+                name = yf.Ticker(ticker).info.get(
+                    "shortName", ticker
+                )
+            except Exception:
+                name = ticker
+
+            signals.append({
+                "ticker": ticker,
+                "name": name,
+                **result
+            })
+
+        print("확인 완료:", ticker)
+
+    if failures == len(TICKERS):
+        raise RuntimeError(
+            "모든 종목의 주가 데이터를 받지 못했습니다. "
+            "실패한 스캔 결과를 정상 결과로 저장하지 않습니다."
+        )
+
+    output = {
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "macro": {
+            "state": "분석 대기",
+            "reason": "거시지표 수집은 아직 연결되지 않았습니다.",
+            "values": {}
+        },
+        "signals": signals,
+        "scan_meta": {
+            "universe": "임시 종목 목록 30개",
+            "symbols_attempted": len(TICKERS),
+            "symbols_failed": failures,
+            "warning": (
+                "근사 신호이며 원본 Pine Script와의 일치 여부는 "
+                "검증되지 않았습니다."
+            )
+        }
+    }
+
+    latest_path = os.path.join(DATA_DIR, "latest.json")
+
+    with open(latest_path, "w", encoding="utf-8") as f:
+        json.dump(output, f, ensure_ascii=False, indent=2)
+
+    history_path = os.path.join(DATA_DIR, "signal_history.json")
+    history = []
+
+    if os.path.exists(history_path):
+        try:
+            with open(history_path, encoding="utf-8") as f:
+                history = json.load(f)
+        except Exception:
+            history = []
+
+    history.append({
+        "scan_date": now.date().isoformat(),
+        "signals": signals
+    })
+
+    with open(history_path, "w", encoding="utf-8") as f:
+        json.dump(history[-500:], f, ensure_ascii=False, indent=2)
+
+    print("스캔 완료:", len(signals), "개 신호")
+    print("주가 데이터 다운로드 실패:", failures, "개")
+    print("결과 저장:", latest_path)
+
+
+if __name__ == "__main__":
+    main()
