@@ -1,0 +1,1 @@
+yfinance>=0.2.54\npandas>=2.2\nlxml>=5.0\n
