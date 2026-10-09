@@ -1,36 +1,226 @@
 {
-  "updated_at": "2026-10-09T13:28:26.359834+00:00",
-  "macro": {
-    "state": "분석 대기",
-    "reason": "거시지표 수집은 아직 연결되지 않았습니다.",
-    "values": {}
-  },
+  "updated_at": "2026-10-09T23:34:39+09:00",
+  "source": "Yahoo Finance",
+  "ticker_count": 30,
   "signals": [
+    {
+      "ticker": "TMUS",
+      "name": "T-Mobile US, Inc.",
+      "signal": "급락",
+      "date": "2026-10-09",
+      "close": 154.27,
+      "drawdown": -20.69,
+      "rsi14": 35.92
+    },
+    {
+      "ticker": "BKNG",
+      "name": "Booking Holdings Inc.",
+      "signal": "급락",
+      "date": "2026-10-09",
+      "close": 159.43,
+      "drawdown": -25.46,
+      "rsi14": 36.84
+    },
+    {
+      "ticker": "AVGO",
+      "name": "Broadcom Inc.",
+      "signal": "조정",
+      "date": "2026-10-09",
+      "close": 364.48,
+      "drawdown": -14.64,
+      "rsi14": 50.99
+    },
+    {
+      "ticker": "NFLX",
+      "name": "Netflix, Inc.",
+      "signal": "조정",
+      "date": "2026-10-09",
+      "close": 71.26,
+      "drawdown": -13.86,
+      "rsi14": 42.49
+    },
+    {
+      "ticker": "ADBE",
+      "name": "Adobe Inc.",
+      "signal": "조정",
+      "date": "2026-10-09",
+      "close": 243.61,
+      "drawdown": -16.8,
+      "rsi14": 44.65
+    },
+    {
+      "ticker": "PEP",
+      "name": "PepsiCo, Inc.",
+      "signal": "조정",
+      "date": "2026-10-09",
+      "close": 125.58,
+      "drawdown": -12.27,
+      "rsi14": 39.14
+    },
+    {
+      "ticker": "INTC",
+      "name": "Intel Corporation",
+      "signal": "조정",
+      "date": "2026-10-09",
+      "close": 106.5,
+      "drawdown": -16.4,
+      "rsi14": 30.34
+    },
+    {
+      "ticker": "QCOM",
+      "name": "QUALCOMM Incorporated",
+      "signal": "조정",
+      "date": "2026-10-09",
+      "close": 174.28,
+      "drawdown": -13.71,
+      "rsi14": 29.84
+    },
+    {
+      "ticker": "HON",
+      "name": "Honeywell International Inc.",
+      "signal": "조정",
+      "date": "2026-10-09",
+      "close": 207.18,
+      "drawdown": -16.48,
+      "rsi14": 51.57
+    },
+    {
+      "ticker": "INTU",
+      "name": "Intuit Inc.",
+      "signal": "조정",
+      "date": "2026-10-09",
+      "close": 305.71,
+      "drawdown": -16.97,
+      "rsi14": 51.92
+    },
     {
       "ticker": "SBUX",
       "name": "Starbucks Corporation",
-      "signal": "단기조정",
-      "date": "2026-10-08",
-      "close": 93.21,
-      "rsi14": 38.9,
-      "percent_b": 0.147,
-      "drawdown60_pct": -14.08
+      "signal": "조정",
+      "date": "2026-10-09",
+      "close": 91.36,
+      "drawdown": -15.79,
+      "rsi14": 36.08
     },
     {
       "ticker": "REGN",
       "name": "Regeneron Pharmaceuticals, Inc.",
+      "signal": "조정",
+      "date": "2026-10-09",
+      "close": 747.85,
+      "drawdown": -12.23,
+      "rsi14": 30.02
+    },
+    {
+      "ticker": "AMZN",
+      "name": "Amazon.com, Inc.",
       "signal": "단기조정",
-      "date": "2026-10-08",
-      "close": 739.57,
-      "rsi14": 32.71,
-      "percent_b": 0.22,
-      "drawdown60_pct": -13.2
+      "date": "2026-10-09",
+      "close": 258.15,
+      "drawdown": -9.11,
+      "rsi14": 49.62
+    },
+    {
+      "ticker": "META",
+      "name": "Meta Platforms, Inc.",
+      "signal": "단기조정",
+      "date": "2026-10-09",
+      "close": 721.07,
+      "drawdown": -7.27,
+      "rsi14": 44.47
+    },
+    {
+      "ticker": "GOOGL",
+      "name": "Alphabet Inc.",
+      "signal": "단기조정",
+      "date": "2026-10-09",
+      "close": 350.85,
+      "drawdown": -7.04,
+      "rsi14": 46.05
+    },
+    {
+      "ticker": "GOOG",
+      "name": "Alphabet Inc.",
+      "signal": "단기조정",
+      "date": "2026-10-09",
+      "close": 347.33,
+      "drawdown": -7.4,
+      "rsi14": 46.63
+    },
+    {
+      "ticker": "AMD",
+      "name": "Advanced Micro Devices, Inc.",
+      "signal": "단기조정",
+      "date": "2026-10-09",
+      "close": 616.75,
+      "drawdown": -5.03,
+      "rsi14": 50.45
+    },
+    {
+      "ticker": "CSCO",
+      "name": "Cisco Systems, Inc.",
+      "signal": "단기조정",
+      "date": "2026-10-09",
+      "close": 116.43,
+      "drawdown": -5.65,
+      "rsi14": 62.24
+    },
+    {
+      "ticker": "AMGN",
+      "name": "Amgen Inc.",
+      "signal": "단기조정",
+      "date": "2026-10-09",
+      "close": 412.17,
+      "drawdown": -7.19,
+      "rsi14": 61.77
+    },
+    {
+      "ticker": "VRTX",
+      "name": "Vertex Pharmaceuticals Incorporated",
+      "signal": "단기조정",
+      "date": "2026-10-09",
+      "close": 512.65,
+      "drawdown": -8.12,
+      "rsi14": 51.68
+    },
+    {
+      "ticker": "LRCX",
+      "name": "Lam Research Corporation",
+      "signal": "단기조정",
+      "date": "2026-10-09",
+      "close": 320.83,
+      "drawdown": -7.67,
+      "rsi14": 61.64
     }
   ],
-  "scan_meta": {
-    "universe": "임시 종목 목록 30개",
-    "symbols_attempted": 30,
-    "symbols_failed": 0,
-    "warning": "근사 신호이며 원본 Pine Script와의 일치 여부는 검증되지 않았습니다."
+  "macro": {
+    "state": "시장 지표 수집 완료",
+    "reason": "나스닥-100, S&P 500, VIX, 비트코인 데이터를 수집했습니다. 이 상태는 매수·매도 판단 등급이 아니라 데이터 연결 상태입니다.",
+    "values": {
+      "나스닥-100": {
+        "value": 30843.6152,
+        "updated_at": "2026-10-09",
+        "source": "Yahoo Finance",
+        "symbol": "^NDX"
+      },
+      "S&P 500": {
+        "value": 7790.5698,
+        "updated_at": "2026-10-09",
+        "source": "Yahoo Finance",
+        "symbol": "^GSPC"
+      },
+      "VIX": {
+        "value": 15.1,
+        "updated_at": "2026-10-09",
+        "source": "Yahoo Finance",
+        "symbol": "^VIX"
+      },
+      "비트코인": {
+        "value": 83211.5078,
+        "updated_at": "2026-10-09",
+        "source": "Yahoo Finance",
+        "symbol": "BTC-USD"
+      }
+    }
   }
 }
