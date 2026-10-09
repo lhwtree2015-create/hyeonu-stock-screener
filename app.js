@@ -1,214 +1,158 @@
-
-import os
-import json
-from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
-
-import pandas as pd
-import yfinance as yf
-
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(ROOT, "data")
-os.makedirs(DATA_DIR, exist_ok=True)
-
-ET = ZoneInfo("America/New_York")
-now = datetime.now(ET)
-
-# GitHub Actions 수동 실행은 시간 제한을 적용하지 않습니다.
-force = os.getenv("FORCE_SCAN") == "1"
-
-if not force and (
-    now.weekday() >= 5
-    or not (now.hour == 3 and 15 <= now.minute <= 59)
-):
-    print("예약 실행 시간이 아니므로 건너뜁니다:", now)
-    raise SystemExit(0)
-
-# 임시 종목 목록: 나스닥-100 전체가 아닌 일부 종목입니다.
-TICKERS = [
-    "AAPL", "MSFT", "NVDA", "AMZN", "META",
-    "AVGO", "GOOGL", "GOOG", "COST", "NFLX",
-    "TSLA", "AMD", "ADBE", "PEP", "CSCO",
-    "QCOM", "INTC", "AMAT", "TXN", "INTU",
-    "AMGN", "HON", "BKNG", "SBUX", "ADP",
-    "GILD", "VRTX", "ADI", "REGN", "PANW"
-]
-
-
-def download(ticker):
-    try:
-        df = yf.download(
-            ticker,
-            period="1y",
-            interval="1d",
-            auto_adjust=True,
-            progress=False,
-            threads=False
-        )
-
-        if df is None or df.empty:
-            print("주가 데이터 없음:", ticker)
-            return None
-
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
-
-        return df.dropna(subset=["Close"])
-
-    except Exception as exc:
-        print("주가 다운로드 실패:", ticker, str(exc)[:150])
-        return None
-
-
-def calculate_signal(df):
-    if df is None or len(df) < 60:
-        return None
-
-    close = df["Close"].astype(float)
-    low = df["Low"].astype(float)
-
-    avg20 = close.rolling(20).mean()
-    std20 = close.rolling(20).std(ddof=0)
-
-    upper = avg20 + 2 * std20
-    lower = avg20 - 2 * std20
-
-    percent_b = (
-        (close - lower) / (upper - lower).replace(0, float("nan"))
-    )
-
-    change = close.diff()
-    gain = change.clip(lower=0).rolling(14).mean()
-    loss = (-change.clip(upper=0)).rolling(14).mean()
-
-    rs = gain / loss.replace(0, float("nan"))
-    rsi = 100 - (100 / (1 + rs))
-
-    drawdown = close / close.rolling(60).max() - 1
-
-    i = len(df) - 1
-
-    values = [
-        rsi.iloc[i],
-        percent_b.iloc[i],
-        drawdown.iloc[i]
-    ]
-
-    if any(pd.isna(value) for value in values):
-        return None
-
-    r = float(rsi.iloc[i])
-    b = float(percent_b.iloc[i])
-    dd = float(drawdown.iloc[i])
-
-    signal = None
-
-    # 강한 신호부터 우선 표시합니다.
-    if dd <= -0.23 and r <= 28 and b <= -0.05:
-        signal = "패닉셀"
-    elif dd <= -0.17 and r <= 33 and b <= 0.15:
-        signal = "급락"
-    elif r <= 35 and b <= 0.20:
-        signal = "조정"
-    elif r <= 42 and b <= 0.25:
-        signal = "단기조정"
-
-    if signal is None:
-        return None
-
-    return {
-        "signal": signal,
-        "date": str(df.index[-1].date()),
-        "close": round(float(close.iloc[i]), 4),
-        "rsi14": round(r, 2),
-        "percent_b": round(b, 3),
-        "drawdown60_pct": round(dd * 100, 2)
-    }
-
-
-def main():
-    signals = []
-    failures = 0
-
-    print("스캔 시작:", len(TICKERS), "개 종목")
-
-    for ticker in TICKERS:
-        df = download(ticker)
-
-        if df is None:
-            failures += 1
-            continue
-
-        result = calculate_signal(df)
-
-        if result:
-            try:
-                name = yf.Ticker(ticker).info.get(
-                    "shortName", ticker
-                )
-            except Exception:
-                name = ticker
-
-            signals.append({
-                "ticker": ticker,
-                "name": name,
-                **result
-            })
-
-        print("확인 완료:", ticker)
-
-    if failures == len(TICKERS):
-        raise RuntimeError(
-            "모든 종목의 주가 데이터를 받지 못했습니다. "
-            "실패한 스캔 결과를 정상 결과로 저장하지 않습니다."
-        )
-
-    output = {
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-        "macro": {
-            "state": "분석 대기",
-            "reason": "거시지표 수집은 아직 연결되지 않았습니다.",
-            "values": {}
-        },
-        "signals": signals,
-        "scan_meta": {
-            "universe": "임시 종목 목록 30개",
-            "symbols_attempted": len(TICKERS),
-            "symbols_failed": failures,
-            "warning": (
-                "근사 신호이며 원본 Pine Script와의 일치 여부는 "
-                "검증되지 않았습니다."
-            )
+document.addEventListener("DOMContentLoaded", () => {
+  const tabs = document.querySelectorAll("[data-page]");
+  const pages = document.querySelectorAll("main .page");
+  function showPage(name) {
+    tabs.forEach(tab => {
+      tab.classList.toggle("active", tab.dataset.page === name);
+    });
+    pages.forEach(page => {
+      page.classList.toggle("active", page.id === `page-${name}`);
+    });
+  }
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      showPage(tab.dataset.page);
+    });
+  });
+  const backButton = document.querySelector("#backScanner");
+  if (backButton) {
+    backButton.addEventListener("click", () => showPage("scanner"));
+  }
+  async function loadData() {
+    const status = document.querySelector("#updated");
+    const scannerStatus = document.querySelector("#scannerStatus");
+    const signalList = document.querySelector("#signalList");
+    const scanCount = document.querySelector("#scanCount");
+    const macroMetrics = document.querySelector("#macroMetrics");
+    const marketState = document.querySelector("#marketState");
+    const historyList = document.querySelector("#historyList");
+    let data;
+    try {
+      const response = await fetch(
+        `./data/latest.json?t=${Date.now()}`,
+        { cache: "no-store" }
+      );
+      if (!response.ok) throw new Error("최신 데이터 파일을 읽지 못했습니다.");
+      data = await response.json();
+      if (status) {
+        status.textContent = "데이터 기준: " + (data.updated_at || "시각 미확인");
+      }
+      const macro = data.macro || {};
+      if (marketState) {
+        marketState.innerHTML = `
+          <div class="state-title">시장 상태</div>
+          <h3>${escapeHTML(macro.state || "분석 데이터 대기")}</h3>
+          <p>${escapeHTML(macro.reason || "시장 지표가 아직 연결되지 않았습니다.")}</p>
+        `;
+      }
+      if (macroMetrics && macro.values && Object.keys(macro.values).length) {
+        macroMetrics.innerHTML = Object.entries(macro.values).map(([name, item]) => `
+          <div class="metric">
+            <span>${escapeHTML(name)}</span>
+            <b>${escapeHTML(item?.value ?? "—")}</b>
+            <small>${escapeHTML(item?.updated_at || "시각 미확인")}</small>
+          </div>
+        `).join("");
+      }
+      const signals = Array.isArray(data.signals) ? data.signals : [];
+      if (scanCount) scanCount.textContent = `${signals.length}개 신호`;
+      if (scannerStatus) {
+        scannerStatus.textContent = signals.length
+          ? `스캔 완료 · ${signals.length}개 신호 발견`
+          : "스캔 완료 · 현재 표시할 신호가 없습니다.";
+      }
+      function renderSignals() {
+        const query = (document.querySelector("#search")?.value || "").toLowerCase();
+        const filter = document.querySelector("#signalFilter")?.value || "all";
+        const sort = document.querySelector("#sort")?.value || "strength";
+        const strength = { "패닉셀": 4, "급락": 3, "조정": 2, "단기조정": 1 };
+        const filtered = signals.filter(item => {
+          const matchesQuery = `${item.ticker || ""} ${item.name || ""}`.toLowerCase().includes(query);
+          const matchesFilter = filter === "all" || item.signal === filter;
+          return matchesQuery && matchesFilter;
+        });
+        filtered.sort((a, b) => {
+          if (sort === "ticker") return (a.ticker || "").localeCompare(b.ticker || "");
+          if (sort === "drop") return (a.drawdown ?? 0) - (b.drawdown ?? 0);
+          return (strength[b.signal] || 0) - (strength[a.signal] || 0);
+        });
+        if (signalList) {
+          signalList.innerHTML = filtered.length ? filtered.map(item => `
+            <article class="panel signal" data-ticker="${escapeHTML(item.ticker || "")}">
+              <strong>${escapeHTML(item.ticker || "")} ${escapeHTML(item.name || "")}</strong>
+              <b>${escapeHTML(item.signal || "신호 미확인")}</b>
+              <p>기준일 ${escapeHTML(item.date || "—")} · 종가 ${escapeHTML(item.close ?? "—")}</p>
+              <button class="subtle detail-button" data-ticker="${escapeHTML(item.ticker || "")}">종목 상세 보기</button>
+            </article>
+          `).join("") : '<p class="notice">조건에 맞는 신호가 없습니다.</p>';
+          signalList.querySelectorAll(".detail-button").forEach(button => {
+            button.addEventListener("click", () => {
+              const item = signals.find(s => s.ticker === button.dataset.ticker);
+              const title = document.querySelector("#detailTitle");
+              const body = document.querySelector("#detailBody");
+              if (title) title.textContent = `${item?.ticker || ""} ${item?.name || ""}`;
+              if (body) {
+                body.textContent = item
+                  ? `신호: ${item.signal || "—"} · 기준일: ${item.date || "—"} · 종가: ${item.close ?? "—"}. 상세 차트와 추가 지표는 별도 연결이 필요합니다.`
+                  : "종목 정보를 찾을 수 없습니다.";
+              }
+              showPage("detail");
+            });
+          });
         }
+      }
+      renderSignals();
+      ["search", "signalFilter", "sort"].forEach(id => {
+        document.querySelector(`#${id}`)?.addEventListener("input", renderSignals);
+        document.querySelector(`#${id}`)?.addEventListener("change", renderSignals);
+      });
+      try {
+        const historyResponse = await fetch(
+          `./data/signal_history.json?t=${Date.now()}`,
+          { cache: "no-store" }
+        );
+        if (historyResponse.ok) {
+          const history = await historyResponse.json();
+          const records = Array.isArray(history) ? history : [];
+          if (historyList) {
+            historyList.innerHTML = records.length
+              ? records.slice().reverse().map(record => {
+                  const items = Array.isArray(record.signals) ? record.signals : [];
+                  return `<div class="history-row">
+                    <strong>${escapeHTML(record.scan_date || "날짜 미확인")}</strong>
+                    <p>${items.length
+                      ? items.map(s => `${escapeHTML(s.ticker || "")} ${escapeHTML(s.signal || "")}`).join(" · ")
+                      : "신호 없음"}</p>
+                  </div>`;
+                }).join("")
+              : "아직 기록이 없습니다.";
+          }
+        }
+      } catch (error) {
+        if (historyList) historyList.textContent = "신호 이력을 불러오지 못했습니다.";
+      }
+      const summary = document.querySelector("#performanceSummary");
+      if (summary) {
+        summary.innerHTML = `
+          <div class="metric"><span>저장된 신호</span><b>${signals.length}</b><small>최근 스캔 기준</small></div>
+          <div class="metric"><span>성과 통계</span><b>계산 대기</b><small>5·10·20일 수익률 미연결</small></div>
+        `;
+      }
+    } catch (error) {
+      if (status) status.textContent = "데이터 연결 확인 필요";
+      if (scannerStatus) scannerStatus.textContent = "데이터를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.";
+      if (signalList) signalList.innerHTML = '<p class="notice">최신 스캔 데이터를 읽지 못했습니다.</p>';
+      console.error(error);
     }
-
-    latest_path = os.path.join(DATA_DIR, "latest.json")
-
-    with open(latest_path, "w", encoding="utf-8") as f:
-        json.dump(output, f, ensure_ascii=False, indent=2)
-
-    history_path = os.path.join(DATA_DIR, "signal_history.json")
-    history = []
-
-    if os.path.exists(history_path):
-        try:
-            with open(history_path, encoding="utf-8") as f:
-                history = json.load(f)
-        except Exception:
-            history = []
-
-    history.append({
-        "scan_date": now.date().isoformat(),
-        "signals": signals
-    })
-
-    with open(history_path, "w", encoding="utf-8") as f:
-        json.dump(history[-500:], f, ensure_ascii=False, indent=2)
-
-    print("스캔 완료:", len(signals), "개 신호")
-    print("주가 데이터 다운로드 실패:", failures, "개")
-    print("결과 저장:", latest_path)
-
-
-if __name__ == "__main__":
-    main()
+  }
+  function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
+  }
+  loadData();
+});
