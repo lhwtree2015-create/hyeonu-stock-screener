@@ -27,6 +27,8 @@
 
   const FAVORITES_KEY = "hyeonu-stock-favorites";
   const VALID_PERIODS = [30, 90, 180, 365];
+  const UNKNOWN_SECTOR = "섹터 미확인";
+  const PAGE_ORDER = ["macro", "scanner", "detail", "history"];
 
   let latestData = {};
   let signals = [];
@@ -36,6 +38,7 @@
   let resizeTimer = null;
   let favorites = new Set();
   let refreshInProgress = false;
+  let indicatorTab = "rsi";
 
   // =========================================================
   // 2. 공통 유틸리티
@@ -612,95 +615,95 @@
     SHOP: "경기소비재"
   };
 
-  
-function getCompanyMeta(item) {
-  const ticker = normalizeTicker(item.ticker);
 
-  const companyInfo = latestData.company_info || {};
-  const stockInfo = latestData.stock_info || {};
-  const universe = latestData.universe || {};
-  const companies = latestData.companies || {};
-  const profiles = latestData.company_profiles || {};
-  const alternateProfiles = latestData.profiles || {};
+  function getCompanyMeta(item) {
+    const ticker = normalizeTicker(item.ticker);
 
-  const base =
-    companyInfo[ticker] ||
-    stockInfo[ticker] ||
-    universe[ticker] ||
-    companies[ticker] ||
-    {};
+    const companyInfo = latestData.company_info || {};
+    const stockInfo = latestData.stock_info || {};
+    const universe = latestData.universe || {};
+    const companies = latestData.companies || {};
+    const profiles = latestData.company_profiles || {};
+    const alternateProfiles = latestData.profiles || {};
 
-  const profile =
-    profiles[ticker] ||
-    alternateProfiles[ticker] ||
-    {};
+    const base =
+      companyInfo[ticker] ||
+      stockInfo[ticker] ||
+      universe[ticker] ||
+      companies[ticker] ||
+      {};
 
-  const meta = { ...profile, ...base };
+    const profile =
+      profiles[ticker] ||
+      alternateProfiles[ticker] ||
+      {};
 
-  const price = number(
-    meta.current_price ??
-    meta.currentPrice ??
-    meta.price ??
-    item.current_price ??
-    item.close
-  );
+    const meta = { ...profile, ...base };
 
-  const change = number(
-    meta.change ??
-    meta.price_change ??
-    meta.priceChange ??
-    item.change
-  );
+    const price = number(
+      meta.current_price ??
+      meta.currentPrice ??
+      meta.price ??
+      item.current_price ??
+      item.close
+    );
 
-  const changePct = number(
-    meta.change_percent ??
-    meta.change_pct ??
-    meta.changePercent ??
-    item.change_percent ??
-    item.change_pct
-  );
+    const change = number(
+      meta.change ??
+      meta.price_change ??
+      meta.priceChange ??
+      item.change
+    );
 
-  const cap = number(
-    meta.market_cap ??
-    meta.marketCap ??
-    meta.market_capitalization ??
-    item.market_cap ??
-    item.marketCap
-  );
+    const changePct = number(
+      meta.change_percent ??
+      meta.change_pct ??
+      meta.changePercent ??
+      item.change_percent ??
+      item.change_pct
+    );
 
-  // 실제 데이터의 섹터를 우선 사용하고,
-  // 없으면 티커별 대체 분류표를 사용한다.
-  const sectorCandidates = [
-    meta.sector,
-    meta.gics_sector,
-    meta.gicsSector,
-    item.sector,
-    latestData.sectors?.[ticker],
-    SECTOR_BY_TICKER[ticker]
-  ];
+    const cap = number(
+      meta.market_cap ??
+      meta.marketCap ??
+      meta.market_capitalization ??
+      item.market_cap ??
+      item.marketCap
+    );
 
-  const sector = sectorCandidates.find(
-    value =>
-      typeof value === "string" &&
-      value.trim().length > 0
-  ) || "섹터 미확인";
+    // 실제 데이터의 섹터를 우선 사용하고,
+    // 없으면 티커별 대체 분류표를 사용한다.
+    const sectorCandidates = [
+      meta.sector,
+      meta.gics_sector,
+      meta.gicsSector,
+      item.sector,
+      latestData.sectors?.[ticker],
+      SECTOR_BY_TICKER[ticker]
+    ];
 
-  const exchange =
-    meta.index ||
-    meta.exchange ||
-    item.index ||
-    "나스닥-100";
+    const sector = sectorCandidates.find(
+      value =>
+        typeof value === "string" &&
+        value.trim().length > 0
+    ) || UNKNOWN_SECTOR;
 
-  return {
-    meta,
-    price,
-    change,
-    changePct,
-    cap,
-    sector,
-    exchange
-  };
-}
+    const exchange =
+      meta.index ||
+      meta.exchange ||
+      item.index ||
+      "나스닥-100";
+
+    return {
+      meta,
+      price,
+      change,
+      changePct,
+      cap,
+      sector,
+      exchange
+    };
+  }
 
 
   // =========================================================
@@ -723,13 +726,65 @@ function getCompanyMeta(item) {
     });
 
     if (name === "detail") {
-      requestAnimationFrame(drawStockChart);
+      requestAnimationFrame(drawDetailCharts);
     }
   }
 
   // =========================================================
   // 7. 시장 요약
   // =========================================================
+
+  // 비트코인: 현재가(카드 본문), 24시간 등락률, 7일 추세를 일봉 이력으로 계산
+  function bitcoinTrendMarkup(source) {
+    const rows = safeArray(source)
+      .filter(row =>
+        isObject(row) &&
+        validDate(row.date) &&
+        number(row.close) !== null
+      )
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    if (rows.length < 2) {
+      return '<div class="macro-trend"><span>24시간·7일 데이터 부족</span></div>';
+    }
+
+    const lastIndex = rows.length - 1;
+    const last = number(rows[lastIndex].close);
+    const previous = number(rows[lastIndex - 1].close);
+    const weekAgo = lastIndex >= 7
+      ? number(rows[lastIndex - 7].close)
+      : null;
+
+    const change24 =
+      previous !== null && previous > 0
+        ? (last / previous - 1) * 100
+        : null;
+
+    const change7 =
+      weekAgo !== null && weekAgo > 0
+        ? (last / weekAgo - 1) * 100
+        : null;
+
+    const tone = value =>
+      value === null
+        ? "neutral"
+        : value < 0
+          ? "negative"
+          : "positive";
+
+    const trendLabel =
+      change7 === null
+        ? ""
+        : change7 >= 0
+          ? " 상승"
+          : " 하락";
+
+    return `
+      <div class="macro-trend">
+        <span>24시간 <b class="${tone(change24)}">${safe(signed(change24))}</b></span>
+        <span>7일 <b class="${tone(change7)}">${safe(signed(change7))}${safe(trendLabel)}</b></span>
+      </div>`;
+  }
 
   function renderMacro(data) {
     const macro = data.macro || {};
@@ -772,6 +827,7 @@ function getCompanyMeta(item) {
             ? "—"
             : safe(fmt(numericValue) + suffix)}</b>
           <small>${safe(updatedAt)}</small>
+          ${name === "비트코인" ? bitcoinTrendMarkup(histories[name]) : ""}
           <div class="macro-chart-wrap">
             <canvas
               id="macroChart${index}"
@@ -891,6 +947,112 @@ function getCompanyMeta(item) {
   // 8. 종목 스캐너
   // =========================================================
 
+  // 종목 카드 1개의 HTML (기존 카드 구조·표시 항목 그대로 유지)
+  function renderSignalCard(item, meta) {
+    const isFavorite = favorites.has(item.ticker);
+
+    return `
+        <article
+          class="panel signal signal-clickable"
+          data-ticker="${safe(item.ticker)}"
+          tabindex="0"
+          role="button"
+          aria-label="${safe(item.ticker)} 상세 정보 보기">
+
+          <div class="signal-card-top">
+            <strong>${safe(item.ticker)} · ${safe(item.name)}</strong>
+            <button
+              type="button"
+              class="signal-star ${isFavorite ? "is-favorite" : ""}"
+              data-favorite="${safe(item.ticker)}"
+              aria-label="관심 종목 ${safe(item.ticker)}"
+              aria-pressed="${isFavorite}">
+              ${isFavorite ? "★" : "☆"}
+            </button>
+          </div>
+
+          <b>${safe(item.signal)}</b>
+          <p>종가 ${fmt(item.close)} · 고점 대비 ${fmt(item.drawdown)}%</p>
+          <small>RSI ${fmt(item.rsi14)} · 기준일 ${safe(item.date)}</small>
+
+          <div class="card-meta-line">
+            <span>${safe(meta.sector)}</span>
+            <span>시총 ${safe(moneyCap(meta.cap))}</span>
+          </div>
+
+          <div class="card-hint">상세 차트 보기 →</div>
+        </article>`;
+  }
+
+  // 영문(GICS·yfinance) 섹터명과 한글 대체 분류표가 섞여도
+  // 같은 섹터가 두 그룹으로 갈라지지 않도록 그룹 제목만 통일한다.
+  // (카드 안에 표시되는 meta.sector 값은 변경하지 않음)
+  const SECTOR_ALIASES = {
+    "information technology": "정보기술",
+    "technology": "정보기술",
+    "communication services": "커뮤니케이션 서비스",
+    "communications": "커뮤니케이션 서비스",
+    "consumer discretionary": "경기소비재",
+    "consumer cyclical": "경기소비재",
+    "consumer staples": "필수소비재",
+    "consumer defensive": "필수소비재",
+    "health care": "헬스케어",
+    "healthcare": "헬스케어",
+    "financials": "금융",
+    "financial": "금융",
+    "financial services": "금융",
+    "industrials": "산업재",
+    "energy": "에너지",
+    "materials": "소재",
+    "basic materials": "소재",
+    "utilities": "유틸리티",
+    "real estate": "부동산"
+  };
+
+  function sectorGroupLabel(sector) {
+    const text = typeof sector === "string" ? sector.trim() : "";
+
+    if (!text) {
+      return UNKNOWN_SECTOR;
+    }
+
+    return SECTOR_ALIASES[text.toLowerCase()] || text;
+  }
+
+  // 화면 표시 단계에서만 섹터별로 묶는다. (signals 배열·filtered 배열은 변경하지 않음)
+  // 각 섹터 내부는 기존 정렬 결과(filtered의 순서)를 그대로 유지한다.
+  function groupBySector(items) {
+    const groups = new Map();
+
+    items.forEach(item => {
+      const meta = getCompanyMeta(item);
+      const sector = sectorGroupLabel(meta.sector);
+
+      if (!groups.has(sector)) {
+        groups.set(sector, []);
+      }
+
+      groups.get(sector).push({ item, meta });
+    });
+
+    // 종목 수 많은 섹터 먼저, 동수면 이름순, '섹터 미확인'은 항상 마지막
+    return [...groups.entries()].sort((a, b) => {
+      if (a[0] === UNKNOWN_SECTOR && b[0] !== UNKNOWN_SECTOR) {
+        return 1;
+      }
+
+      if (b[0] === UNKNOWN_SECTOR && a[0] !== UNKNOWN_SECTOR) {
+        return -1;
+      }
+
+      if (b[1].length !== a[1].length) {
+        return b[1].length - a[1].length;
+      }
+
+      return a[0].localeCompare(b[0], "ko");
+    });
+  }
+
   function renderSignals() {
     const search = ($("#search")?.value || "")
       .trim()
@@ -942,42 +1104,17 @@ function getCompanyMeta(item) {
       return;
     }
 
-    list.innerHTML = filtered.map(item => {
-      const meta = getCompanyMeta(item);
-      const isFavorite = favorites.has(item.ticker);
-
-      return `
-        <article
-          class="panel signal signal-clickable"
-          data-ticker="${safe(item.ticker)}"
-          tabindex="0"
-          role="button"
-          aria-label="${safe(item.ticker)} 상세 정보 보기">
-
-          <div class="signal-card-top">
-            <strong>${safe(item.ticker)} · ${safe(item.name)}</strong>
-            <button
-              type="button"
-              class="signal-star ${isFavorite ? "is-favorite" : ""}"
-              data-favorite="${safe(item.ticker)}"
-              aria-label="관심 종목 ${safe(item.ticker)}"
-              aria-pressed="${isFavorite}">
-              ${isFavorite ? "★" : "☆"}
-            </button>
-          </div>
-
-          <b>${safe(item.signal)}</b>
-          <p>종가 ${fmt(item.close)} · 고점 대비 ${fmt(item.drawdown)}%</p>
-          <small>RSI ${fmt(item.rsi14)} · 기준일 ${safe(item.date)}</small>
-
-          <div class="card-meta-line">
-            <span>${safe(meta.sector)}</span>
-            <span>시총 ${safe(moneyCap(meta.cap))}</span>
-          </div>
-
-          <div class="card-hint">상세 차트 보기 →</div>
-        </article>`;
-    }).join("");
+    list.innerHTML = groupBySector(filtered).map(([sector, entries]) => `
+      <section class="sector-group" data-sector="${safe(sector)}">
+        <h3 class="sector-group-title">
+          <span>${safe(sector)}</span>
+          <b>${entries.length}개 종목</b>
+        </h3>
+        <div class="sector-group-body">
+          ${entries.map(entry => renderSignalCard(entry.item, entry.meta)).join("")}
+        </div>
+      </section>`
+    ).join("");
 
     $$("#signalList [data-ticker]").forEach(card => {
       card.addEventListener("click", event => {
@@ -1273,6 +1410,7 @@ function getCompanyMeta(item) {
 
     selectedTicker = ticker;
     chartPeriod = 90;
+    indicatorTab = "rsi";
 
     setText(
       "#detailTitle",
@@ -1282,7 +1420,7 @@ function getCompanyMeta(item) {
     renderDetail(item);
     showPage("detail");
 
-    requestAnimationFrame(drawStockChart);
+    requestAnimationFrame(drawDetailCharts);
   }
 
   function renderDetail(item) {
@@ -1570,6 +1708,22 @@ function getCompanyMeta(item) {
           </div>
         </section>
 
+        <section class="sd-indicator-card">
+          <div class="sd-indicator-tabs">
+            <button type="button" data-indicator="rsi" class="active">RSI (14)</button>
+            <button type="button" data-indicator="volume">거래량</button>
+          </div>
+
+          <div id="indicatorMessage" class="muted chart-message"></div>
+
+          <div class="indicator-canvas-wrap">
+            <canvas
+              id="indicatorChart"
+              aria-label="RSI 및 거래량 차트">
+            </canvas>
+          </div>
+        </section>
+
         <section class="sd-metrics">
           ${metricTile("60일 고점 대비", signed(drawdown60), downTone(drawdown60), "↓")}
           ${metricTile("RSI (14)", fmt(currentRSI, 1), rsiTone(currentRSI), "∿")}
@@ -1640,11 +1794,32 @@ function getCompanyMeta(item) {
           );
         });
 
-        drawStockChart();
+        drawDetailCharts();
       });
     });
 
-    requestAnimationFrame(drawStockChart);
+    $$(".sd-indicator-tabs [data-indicator]").forEach(button => {
+      button.addEventListener("click", () => {
+        const tab = button.dataset.indicator;
+
+        if (tab !== "rsi" && tab !== "volume") {
+          return;
+        }
+
+        indicatorTab = tab;
+
+        $$(".sd-indicator-tabs button").forEach(element => {
+          element.classList.toggle(
+            "active",
+            element === button
+          );
+        });
+
+        drawIndicatorChart();
+      });
+    });
+
+    requestAnimationFrame(drawDetailCharts);
   }
 
   // =========================================================
@@ -1873,6 +2048,233 @@ function getCompanyMeta(item) {
         `${rows.length}개 거래일 · ` +
         `${rows[0].date} ~ ${rows[rows.length - 1].date}`;
     }
+  }
+
+  // 거래량 등 큰 수를 짧게 표시
+  function compactNumber(value) {
+    const n = number(value);
+
+    if (n === null) {
+      return "—";
+    }
+
+    if (n >= 1e9) {
+      return `${(n / 1e9).toFixed(1)}B`;
+    }
+
+    if (n >= 1e6) {
+      return `${(n / 1e6).toFixed(1)}M`;
+    }
+
+    if (n >= 1e3) {
+      return `${(n / 1e3).toFixed(1)}K`;
+    }
+
+    return fmt(n, 0);
+  }
+
+  // 메인 차트와 같은 기간·같은 가로 간격을 사용하는 RSI / 거래량 차트
+  function drawIndicatorChart() {
+    const canvas = $("#indicatorChart");
+
+    if (!canvas || !selectedTicker) {
+      return;
+    }
+
+    const all = getPriceRows(selectedTicker);
+    const rows = all.slice(-chartPeriod);
+    const offset = all.length - rows.length;
+
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const width = Math.max(280, canvas.clientWidth || 320);
+    const height = 150;
+
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    canvas.style.height = `${height}px`;
+
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      return;
+    }
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    const message = $("#indicatorMessage");
+
+    if (!rows.length) {
+      ctx.fillStyle = "#667085";
+      ctx.font = "13px sans-serif";
+      ctx.fillText("가격 데이터가 없습니다.", 8, 25);
+
+      if (message) {
+        message.textContent = "저장된 가격 기록 없음";
+      }
+
+      return;
+    }
+
+    const left = 4;
+    const right = 43;
+    const top = 8;
+    const bottom = 18;
+    const plotWidth = Math.max(1, width - left - right);
+    const plotHeight = height - top - bottom;
+    const step = plotWidth / rows.length;
+    const x = index => left + step * (index + 0.5);
+
+    ctx.font = "10px sans-serif";
+    ctx.textBaseline = "middle";
+
+    if (indicatorTab === "volume") {
+      const volumes = rows.map(row => row.volume || 0);
+      const maxVolume = Math.max(1, ...volumes);
+
+      const average20 = movingAverage(
+        all.map(row => ({ close: row.volume || 0 })),
+        20
+      ).slice(offset);
+
+      const barWidth = Math.max(1, Math.min(8, step * 0.65));
+
+      [0, 0.5, 1].forEach(ratio => {
+        const yy = top + plotHeight * (1 - ratio);
+
+        ctx.strokeStyle = "#eaecf0";
+        ctx.beginPath();
+        ctx.moveTo(left, yy);
+        ctx.lineTo(width - right, yy);
+        ctx.stroke();
+
+        ctx.fillStyle = "#667085";
+        ctx.textAlign = "right";
+        ctx.fillText(
+          compactNumber(maxVolume * ratio),
+          width - 2,
+          yy
+        );
+      });
+
+      rows.forEach((row, index) => {
+        const barHeight =
+          (row.volume || 0) / maxVolume * plotHeight;
+
+        ctx.fillStyle =
+          row.close >= row.open ? "#16845b" : "#c03939";
+
+        ctx.fillRect(
+          x(index) - barWidth / 2,
+          top + plotHeight - barHeight,
+          barWidth,
+          barHeight
+        );
+      });
+
+      ctx.beginPath();
+      ctx.strokeStyle = "#e69b27";
+      ctx.lineWidth = 1.2;
+
+      let started = false;
+
+      average20.forEach((value, index) => {
+        if (value === null || !Number.isFinite(value)) {
+          started = false;
+          return;
+        }
+
+        const yy = top + plotHeight * (1 - value / maxVolume);
+
+        if (!started) {
+          ctx.moveTo(x(index), yy);
+          started = true;
+        } else {
+          ctx.lineTo(x(index), yy);
+        }
+      });
+
+      ctx.stroke();
+
+      if (message) {
+        const lastAverage = average20[average20.length - 1];
+
+        message.textContent =
+          `거래량 ${compactNumber(volumes[volumes.length - 1])}` +
+          ` · 20일 평균 ${compactNumber(lastAverage)}`;
+      }
+    } else {
+      const rsi = calculateRSI(all, 14).slice(offset);
+      const y = value => top + (100 - value) / 100 * plotHeight;
+
+      [30, 50, 70].forEach(level => {
+        ctx.strokeStyle = level === 50 ? "#eaecf0" : "#d0d5dd";
+
+        if (ctx.setLineDash) {
+          ctx.setLineDash(level === 50 ? [] : [4, 3]);
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(left, y(level));
+        ctx.lineTo(width - right, y(level));
+        ctx.stroke();
+
+        ctx.fillStyle = "#667085";
+        ctx.textAlign = "right";
+        ctx.fillText(String(level), width - 2, y(level));
+      });
+
+      if (ctx.setLineDash) {
+        ctx.setLineDash([]);
+      }
+
+      ctx.beginPath();
+      ctx.strokeStyle = "#245eea";
+      ctx.lineWidth = 1.5;
+      ctx.lineJoin = "round";
+
+      let started = false;
+
+      rsi.forEach((value, index) => {
+        if (value === null || !Number.isFinite(value)) {
+          started = false;
+          return;
+        }
+
+        if (!started) {
+          ctx.moveTo(x(index), y(value));
+          started = true;
+        } else {
+          ctx.lineTo(x(index), y(value));
+        }
+      });
+
+      ctx.stroke();
+
+      if (message) {
+        const lastValue = rsi[rsi.length - 1];
+
+        message.textContent =
+          `RSI(14) ${fmt(lastValue, 1)} · 30 이하 과매도 / 70 이상 과매수 구간`;
+      }
+    }
+
+    ctx.textBaseline = "bottom";
+    ctx.fillStyle = "#667085";
+    ctx.textAlign = "left";
+    ctx.fillText(rows[0].date.slice(5), left, height - 1);
+
+    ctx.textAlign = "right";
+    ctx.fillText(
+      rows[rows.length - 1].date.slice(5),
+      width - right,
+      height - 1
+    );
+  }
+
+  function drawDetailCharts() {
+    drawStockChart();
+    drawIndicatorChart();
   }
 
   // =========================================================
@@ -2174,6 +2576,96 @@ function getCompanyMeta(item) {
         color: #e6a817;
       }
 
+      .sector-group {
+        grid-column: 1 / -1;
+        width: 100%;
+        margin: 0 0 18px;
+      }
+
+      .sector-group-title {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 6px 2px 10px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e4e7ec;
+        font-size: 16px;
+      }
+
+      .sector-group-title b {
+        color: #667085;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .sector-group-body {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      @media (max-width: 560px) {
+        .sector-group-body {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .macro-trend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 10px;
+        margin-top: 2px;
+        color: #667085;
+        font-size: 11px;
+      }
+
+      .macro-trend b {
+        font-weight: 750;
+      }
+
+      .sd-indicator-card {
+        padding: 12px 12px 7px;
+        border: 1px solid #e4e7ec;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(16,24,40,.025);
+        margin-bottom: 14px;
+      }
+
+      .sd-indicator-tabs {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 8px;
+      }
+
+      .sd-indicator-tabs button {
+        padding: 7px 11px;
+        border: 0;
+        border-radius: 999px;
+        background: #f2f4f7;
+        color: #475467;
+        font-size: 12px;
+      }
+
+      .sd-indicator-tabs button.active {
+        background: #245eea;
+        color: #fff;
+      }
+
+      .indicator-canvas-wrap {
+        width: 100%;
+        height: 150px;
+        overflow: hidden;
+      }
+
+      #indicatorChart {
+        display: block;
+        width: 100%;
+        height: 150px;
+      }
+
       .sd-analyst-card {
         margin: 14px 0;
         padding: 14px;
@@ -2321,6 +2813,102 @@ function getCompanyMeta(item) {
   }
 
   // =========================================================
+  // 좌우 스와이프 화면 이동
+  // =========================================================
+
+  function visibleSwipePages() {
+    return PAGE_ORDER.filter(name =>
+      $(`#page-${name}`) &&
+      (name !== "detail" || selectedTicker)
+    );
+  }
+
+  function currentPageName() {
+    return $(".tabs [data-page].active")?.dataset.page || "macro";
+  }
+
+  function installSwipeNavigation() {
+    const area = $("main");
+
+    if (!area) {
+      return;
+    }
+
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+    let tracking = false;
+
+    area.addEventListener("touchstart", event => {
+      tracking = false;
+
+      if (event.touches.length !== 1) {
+        return;
+      }
+
+      const target = event.target;
+
+      // 차트 조작, 입력창, 가로 스크롤 표에서 시작한 터치는 제외
+      if (
+        target &&
+        target.closest &&
+        target.closest(
+          "canvas, input, select, textarea, .sd-broker-table-wrap"
+        )
+      ) {
+        return;
+      }
+
+      const touch = event.touches[0];
+
+      startX = touch.clientX;
+      startY = touch.clientY;
+      startTime = Date.now();
+      tracking = true;
+    }, { passive: true });
+
+    area.addEventListener("touchend", event => {
+      if (!tracking) {
+        return;
+      }
+
+      tracking = false;
+
+      const touch = event.changedTouches[0];
+
+      if (!touch || Date.now() - startTime > 700) {
+        return;
+      }
+
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+
+      if (
+        Math.abs(dx) < 70 ||
+        Math.abs(dx) < Math.abs(dy) * 1.5
+      ) {
+        return;
+      }
+
+      const pages = visibleSwipePages();
+      const index = pages.indexOf(currentPageName());
+
+      if (index < 0) {
+        return;
+      }
+
+      const next = dx < 0 ? pages[index + 1] : pages[index - 1];
+
+      if (!next) {
+        return;
+      }
+
+      showPage(next);
+      window.scrollTo({ top: 0 });
+    }, { passive: true });
+  }
+
+  // =========================================================
   // 15. 초기화
   // =========================================================
 
@@ -2359,10 +2947,12 @@ function getCompanyMeta(item) {
         });
 
         if (selectedTicker) {
-          drawStockChart();
+          drawDetailCharts();
         }
       }, 120);
     });
+
+    installSwipeNavigation();
 
     showPage("macro");
     refreshData();
