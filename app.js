@@ -733,8 +733,8 @@
   // 7. 시장 요약
   // =========================================================
 
-  // 비트코인: 현재가(카드 본문), 24시간 등락률, 7일 추세를 일봉 이력으로 계산
-  function bitcoinTrendMarkup(source) {
+  // 시장 지표 카드의 등락률: 1D(전일 대비), 1M(30일 전 대비)
+  function macroTrendMarkup(source) {
     const rows = safeArray(source)
       .filter(row =>
         isObject(row) &&
@@ -743,46 +743,50 @@
       )
       .sort((a, b) => a.date.localeCompare(b.date));
 
+    const item = (label, value) => {
+      const tone =
+        value === null || value === 0
+          ? "trend-flat"
+          : value > 0
+            ? "trend-up"
+            : "trend-down";
+
+      return `<span>${label} <b class="${tone}">${safe(signed(value))}</b></span>`;
+    };
+
     if (rows.length < 2) {
-      return '<div class="macro-trend"><span>24시간·7일 데이터 부족</span></div>';
+      return `<div class="macro-trend">${item("1D", null)}${item("1M", null)}</div>`;
     }
 
     const lastIndex = rows.length - 1;
     const last = number(rows[lastIndex].close);
     const previous = number(rows[lastIndex - 1].close);
-    const weekAgo = lastIndex >= 7
-      ? number(rows[lastIndex - 7].close)
-      : null;
 
-    const change24 =
+    const change1d =
       previous !== null && previous > 0
         ? (last / previous - 1) * 100
         : null;
 
-    const change7 =
-      weekAgo !== null && weekAgo > 0
-        ? (last / weekAgo - 1) * 100
+    // 마지막 기준일에서 30일 전(또는 그 직전 거래일) 종가와 비교
+    const target = new Date(`${rows[lastIndex].date}T12:00:00Z`);
+    target.setUTCDate(target.getUTCDate() - 30);
+    const targetKey = target.toISOString().slice(0, 10);
+
+    let base = null;
+
+    for (let i = lastIndex - 1; i >= 0; i--) {
+      if (rows[i].date <= targetKey) {
+        base = number(rows[i].close);
+        break;
+      }
+    }
+
+    const change1m =
+      base !== null && base > 0
+        ? (last / base - 1) * 100
         : null;
 
-    const tone = value =>
-      value === null
-        ? "neutral"
-        : value < 0
-          ? "negative"
-          : "positive";
-
-    const trendLabel =
-      change7 === null
-        ? ""
-        : change7 >= 0
-          ? " 상승"
-          : " 하락";
-
-    return `
-      <div class="macro-trend">
-        <span>24시간 <b class="${tone(change24)}">${safe(signed(change24))}</b></span>
-        <span>7일 <b class="${tone(change7)}">${safe(signed(change7))}${safe(trendLabel)}</b></span>
-      </div>`;
+    return `<div class="macro-trend">${item("1D", change1d)}${item("1M", change1m)}</div>`;
   }
 
   function renderMacro(data) {
@@ -826,7 +830,7 @@
             ? "—"
             : safe(fmt(numericValue) + suffix)}</b>
           <small>${safe(updatedAt)}</small>
-          ${name === "비트코인" ? bitcoinTrendMarkup(histories[name]) : ""}
+          ${macroTrendMarkup(histories[name])}
           <div class="macro-chart-wrap">
             <canvas
               id="macroChart${index}"
@@ -2488,31 +2492,38 @@
 
         const rows = getPriceRows(ticker);
         const signalIndex = rows.findIndex(row => row.date >= date);
-
-        if (signalIndex < 0) {
-          continue;
-        }
-
-        const entry = rows[signalIndex + 1];
-
-        if (!entry || entry.open <= 0) {
-          continue;
-        }
+        const entry = signalIndex >= 0 ? rows[signalIndex + 1] : null;
 
         const result = {
           ticker,
           signal,
           date,
-          entryDate: entry.date
+          entryDate: null,
+          current: null,
+          // 진입일(신호 다음 거래일)의 가격이 아직 없으면 대기 상태로 기록
+          status: rows.length ? "pending" : "nodata"
         };
 
         targets.forEach(days => {
-          const exit = rows[signalIndex + days + 1];
-
-          result[days] = exit
-            ? (exit.close / entry.open - 1) * 100
-            : null;
+          result[days] = null;
         });
+
+        // 계산식은 기존과 동일: 다음 거래일 시가 진입, N거래일 뒤 종가
+        if (entry && entry.open > 0) {
+          result.status = "entered";
+          result.entryDate = entry.date;
+
+          const latest = rows[rows.length - 1];
+          result.current = (latest.close / entry.open - 1) * 100;
+
+          targets.forEach(days => {
+            const exit = rows[signalIndex + days + 1];
+
+            result[days] = exit
+              ? (exit.close / entry.open - 1) * 100
+              : null;
+          });
+        }
 
         entries.push(result);
       }
@@ -2521,7 +2532,7 @@
     const summary = $("#performanceSummary");
 
     if (summary) {
-      summary.innerHTML = targets.map(days => {
+      const cards = targets.map(days => {
         const known = entries.filter(
           item =>
             item[days] !== null &&
@@ -2552,7 +2563,30 @@
               미확정 ${entries.length - known.length}
             </small>
           </article>`;
-      }).join("");
+      });
+
+      const waiting = entries.filter(
+        item => item.status !== "entered"
+      ).length;
+
+      const latestDate = entries.length
+        ? entries.reduce(
+            (maximum, item) => item.date > maximum ? item.date : maximum,
+            entries[0].date
+          )
+        : null;
+
+      cards.push(`
+        <article class="metric">
+          <span>누적 신호</span>
+          <b>${entries.length}건</b>
+          <small>
+            ${latestDate ? `최근 신호일 ${safe(latestDate)}` : "저장된 신호 없음"}
+            ${waiting ? ` · 진입 대기 ${waiting}` : ""}
+          </small>
+        </article>`);
+
+      summary.innerHTML = cards.join("");
     }
 
     const historyList = $("#historyList");
@@ -2563,35 +2597,66 @@
 
     if (!entries.length) {
       historyList.innerHTML =
-        '<p class="muted">성과를 계산할 신호 기록이 없습니다.</p>';
+        '<p class="muted">아직 저장된 신호 기록이 없습니다. 매일 스캔이 실행되면 기록이 쌓입니다.</p>';
       return;
     }
 
-    historyList.innerHTML = entries
+    const chip = (label, value) => {
+      const tone =
+        value === null
+          ? "neutral"
+          : value < 0
+            ? "negative"
+            : "positive";
+
+      return `<span class="hist-chip ${tone}">${safe(label)} ${
+        value === null ? "미확정" : safe(signed(value))
+      }</span>`;
+    };
+
+    const sorted = entries
       .slice()
-      .reverse()
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    historyList.innerHTML = sorted
       .slice(0, 100)
       .map(item => {
-        const results = targets.map(days =>
-          `${days}일 ${
-            item[days] === null
-              ? "미확정"
-              : signed(item[days])
-          }`
-        ).join(" · ");
+        const tone = SIGNAL_TONE[item.signal];
+
+        const entryText =
+          item.status === "entered"
+            ? `진입일 ${safe(item.entryDate)}`
+            : item.status === "pending"
+              ? "진입 대기 (다음 거래일 시가)"
+              : "가격 데이터 없음";
+
+        const chips = targets
+          .map(days => chip(`${days}일`, item[days]))
+          .join("");
+
+        const currentChip =
+          item.status === "entered" &&
+          targets.some(days => item[days] === null)
+            ? chip("현재", item.current)
+            : "";
 
         return `
           <div class="panel history-row">
-            <strong>
-              ${safe(item.ticker)} · ${safe(item.signal)}
-            </strong>
-            <div class="muted">
-              신호일 ${safe(item.date)} ·
-              진입일 ${safe(item.entryDate)}
+            <div class="hist-head">
+              <strong>${safe(item.ticker)}</strong>
+              <span class="sc-badge ${tone ? tone.cls : ""}">
+                <i></i>${safe(item.signal || "신호")}
+              </span>
             </div>
-            <p>${safe(results)}</p>
+            <div class="muted">
+              신호일 ${safe(item.date)} · ${entryText}
+            </div>
+            <div class="hist-results">${chips}${currentChip}</div>
           </div>`;
-      }).join("");
+      }).join("") +
+      (sorted.length > 100
+        ? `<p class="muted">최근 100건만 표시합니다. (전체 ${sorted.length}건)</p>`
+        : "");
   }
 
   async function loadHistory() {
@@ -2620,6 +2685,15 @@
       setText(
         "#historyList",
         "이력을 불러오지 못했습니다."
+      );
+
+      setHTML(
+        "#performanceSummary",
+        `<article class="metric">
+          <span>성과 통계</span>
+          <b>—</b>
+          <small>이력 파일(signal_history.json)을 불러오지 못했습니다</small>
+        </article>`
       );
 
       console.error("[history]", error);
@@ -2786,18 +2860,30 @@
         }
       }
 
-      .macro-trend {
+      #macroMetrics .macro-trend {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px 10px;
+        gap: 2px 10px;
         margin-top: 2px;
-        color: #667085;
-        font-size: 11px;
       }
 
-      .macro-trend b {
-        font-weight: 750;
+      #macroMetrics .macro-trend span {
+        color: #98a2b3;
+        font-size: 10px;
+        font-weight: 500;
+        line-height: 1.3;
       }
+
+      #macroMetrics .macro-trend b {
+        font-size: 10px;
+        font-weight: 500;
+        line-height: 1.3;
+        letter-spacing: 0;
+      }
+
+      #macroMetrics .macro-trend b.trend-up { color: #d92d20; }
+      #macroMetrics .macro-trend b.trend-down { color: #245eea; }
+      #macroMetrics .macro-trend b.trend-flat { color: #98a2b3; }
 
       #page-scanner .toolbar {
         display: grid;
@@ -3088,6 +3174,33 @@
         .sc-metrics {
           font-size: 11px;
         }
+      }
+
+      .hist-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+
+      .hist-head strong {
+        font-size: 16px;
+      }
+
+      .hist-results {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .hist-chip {
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: #f2f4f7;
+        font-size: 12px;
+        font-weight: 700;
       }
 
       .sd-analyst-card {
