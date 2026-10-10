@@ -39,5 +39,58 @@
         "avg_volume20": 8453231.0
       }
     ]
+  },
+  {
+    "scan_date": "2026-10-10",
+    "signals": [
+      {
+        "ticker": "QCOM",
+        "name": "QUALCOMM Incorporated",
+        "signal": "조정",
+        "date": "2026-10-09",
+        "close": 175.5,
+        "rsi14": 30.6,
+        "drawdown": -13.11,
+        "drawdown60_pct": -13.11,
+        "percent_b": 0.157,
+        "ma20": 185.91,
+        "ma50": 172.69,
+        "ma200": 168.0,
+        "volume": 7565100,
+        "avg_volume20": 13575330.0
+      },
+      {
+        "ticker": "INTC",
+        "name": "Intel Corporation",
+        "signal": "단기조정",
+        "date": "2026-10-09",
+        "close": 104.7,
+        "rsi14": 29.0,
+        "drawdown": -17.81,
+        "drawdown60_pct": -17.81,
+        "percent_b": 0.24,
+        "ma20": 113.83,
+        "ma50": 103.08,
+        "ma200": 83.03,
+        "volume": 74726800,
+        "avg_volume20": 109244260.0
+      },
+      {
+        "ticker": "SBUX",
+        "name": "Starbucks Corporation",
+        "signal": "조정",
+        "date": "2026-10-09",
+        "close": 90.75,
+        "rsi14": 34.43,
+        "drawdown": -16.35,
+        "drawdown60_pct": -16.35,
+        "percent_b": -0.134,
+        "ma20": 95.02,
+        "ma50": 101.14,
+        "ma200": 98.1,
+        "volume": 12763400,
+        "avg_volume20": 8953265.0
+      }
+    ]
   }
 ]
