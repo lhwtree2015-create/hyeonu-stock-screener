@@ -288,6 +288,26 @@ def calculate_signal(df):
 def get_company_name(ticker):
     # 개별 종목마다 추가 API를 호출하지 않도록 ticker를 기본 이름으로 사용
     return ticker
+_INFO_CACHE = {}
+def fetch_info(ticker):
+    """yfinance 종목 정보를 한 번만 조회해 재사용한다. 실패하면 빈 딕셔너리."""
+    if ticker in _INFO_CACHE:
+        return _INFO_CACHE[ticker]
+    try:
+        info = yf.Ticker(ticker).info or {}
+    except Exception as exc:
+        print(f"종목 정보 조회 실패 {ticker}: {exc}")
+        info = {}
+    _INFO_CACHE[ticker] = info if isinstance(info, dict) else {}
+    return _INFO_CACHE[ticker]
+def to_number(value):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if pd.isna(number) or number in (float("inf"), float("-inf")):
+        return None
+    return number
 def get_company_info(tickers, old_info):
     """신호가 발생한 종목에 한해 섹터·회사명·시가총액을 조회한다.
 
@@ -300,10 +320,8 @@ def get_company_info(tickers, old_info):
             if isinstance(value, dict):
                 info_map[ticker] = value
     for ticker in tickers:
-        try:
-            raw = yf.Ticker(ticker).info or {}
-        except Exception as exc:
-            print(f"기업 정보 조회 실패 {ticker}: {exc}")
+        raw = fetch_info(ticker)
+        if not raw:
             continue
         entry = dict(info_map.get(ticker, {}))
         sector = raw.get("sector")
@@ -325,6 +343,105 @@ def get_company_info(tickers, old_info):
         if entry:
             info_map[ticker] = entry
     return info_map
+def get_analyst_info(tickers, old_info):
+    """신호가 발생한 종목의 애널리스트 의견·목표가·증권사별 의견을 조회한다.
+
+    표시용 정보이며 신호 계산에는 영향을 주지 않는다.
+    조회에 실패하거나 데이터가 없으면 이전에 저장된 값을 그대로 유지한다.
+    """
+    result = {}
+    if isinstance(old_info, dict):
+        for ticker, value in old_info.items():
+            if isinstance(value, dict):
+                result[ticker] = value
+    today = datetime.now(KST).date().isoformat()
+    for ticker in tickers:
+        stock = yf.Ticker(ticker)
+        summary = {}
+        brokers = []
+        # 1) Buy / Hold / Sell 인원 수 (가장 최근 월)
+        try:
+            recs = stock.recommendations_summary
+            if recs is not None and not recs.empty:
+                row = recs.iloc[0]
+                for key in ("strongBuy", "buy", "hold", "sell", "strongSell"):
+                    if key in recs.columns:
+                        value = to_number(row[key])
+                        if value is not None:
+                            summary[key] = int(value)
+        except Exception as exc:
+            print(f"투자의견 요약 조회 실패 {ticker}: {exc}")
+        # 2) 목표가
+        try:
+            targets = stock.analyst_price_targets
+            if isinstance(targets, dict):
+                for key, source in (
+                    ("targetMean", "mean"),
+                    ("targetLow", "low"),
+                    ("targetHigh", "high"),
+                ):
+                    value = to_number(targets.get(source))
+                    if value is not None and value > 0:
+                        summary[key] = round(value, 2)
+        except Exception as exc:
+            print(f"목표가 조회 실패 {ticker}: {exc}")
+        info = fetch_info(ticker)
+        count = to_number(info.get("numberOfAnalystOpinions"))
+        if count is not None and count > 0:
+            summary["numberAnalysts"] = int(count)
+        for key, source in (
+            ("targetMean", "targetMeanPrice"),
+            ("targetLow", "targetLowPrice"),
+            ("targetHigh", "targetHighPrice"),
+        ):
+            if key not in summary:
+                value = to_number(info.get(source))
+                if value is not None and value > 0:
+                    summary[key] = round(value, 2)
+        # 3) 증권사별 최신 의견 (증권사마다 가장 최근 1건, 최대 30곳)
+        try:
+            changes = stock.upgrades_downgrades
+            if changes is not None and not changes.empty:
+                changes = changes.sort_index(ascending=False)
+                seen = set()
+                for date, row in changes.iterrows():
+                    firm = row.get("Firm")
+                    if not isinstance(firm, str) or not firm.strip():
+                        continue
+                    firm = firm.strip()
+                    if firm in seen:
+                        continue
+                    seen.add(firm)
+                    rating = row.get("ToGrade")
+                    rating = (
+                        rating.strip()
+                        if isinstance(rating, str) and rating.strip()
+                        else "의견 미확인"
+                    )
+                    entry = {
+                        "firm": firm,
+                        "rating": rating,
+                        "date": (
+                            date.date().isoformat()
+                            if hasattr(date, "date")
+                            else str(date)[:10]
+                        ),
+                    }
+                    target = to_number(row.get("currentPriceTarget"))
+                    if target is not None and target > 0:
+                        entry["target_price"] = round(target, 2)
+                    brokers.append(entry)
+                    if len(brokers) >= 30:
+                        break
+        except Exception as exc:
+            print(f"증권사별 의견 조회 실패 {ticker}: {exc}")
+        if summary or brokers:
+            result[ticker] = {
+                "updated_at": today,
+                "summary": summary,
+                "brokers": brokers,
+            }
+    return result
 def main():
     now_et = datetime.now(ET)
     force = os.getenv("FORCE_SCAN", "0") == "1"
@@ -365,12 +482,17 @@ def main():
         [item["ticker"] for item in signals],
         old_data.get("company_info", {})
     )
+    analyst_info = get_analyst_info(
+        [item["ticker"] for item in signals],
+        old_data.get("analyst_info", {})
+    )
     output = {
         "updated_at": datetime.now(KST).isoformat(timespec="seconds"),
         "source": "Yahoo Finance / FRED",
         "ticker_count": len(price_history),
         "signals": signals,
         "company_info": company_info,
+        "analyst_info": analyst_info,
         "macro": macro,
         "macro_history": macro_history,
         "price_history": price_history,
