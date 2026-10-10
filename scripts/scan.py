@@ -1,5 +1,7 @@
 import json
 import os
+import time
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -33,7 +35,11 @@ MACRO_SYMBOLS = {
     "금": "GC=F",
     "원·달러 환율": "KRW=X",
     "비트코인": "BTC-USD",
+    "달러 인덱스": "DX-Y.NYB",
 }
+# 공포·탐욕지수: 주식(CNN)은 공식 API가 없어 비트코인 공포·탐욕지수(alternative.me)를 사용한다.
+FEAR_GREED_NAME = "비트코인 공포지수"
+MACRO_TOTAL = len(MACRO_SYMBOLS) + 1
 def read_json(path, default):
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -168,6 +174,57 @@ def download_fred_2y():
     except Exception as exc:
         print(f"FRED 2년물 조회 실패: {exc}")
         return None
+def download_fear_greed():
+    """alternative.me의 비트코인 공포·탐욕지수(무료 공개 API, 키 불필요).
+
+    일별 값 하나만 제공되므로 전날 값을 시가로 삼아 캔들용 행을 만든다.
+    """
+    try:
+        request = urllib.request.Request(
+            "https://api.alternative.me/fng/?limit=400&format=json",
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(request, timeout=20) as response:
+            payload = json.load(response)
+        points = []
+        for item in payload.get("data", []):
+            value = to_number(item.get("value"))
+            stamp = to_number(item.get("timestamp"))
+            if value is None or stamp is None:
+                continue
+            date = datetime.fromtimestamp(
+                int(stamp), tz=ZoneInfo("UTC")
+            ).date().isoformat()
+            points.append((
+                date, value, str(item.get("value_classification") or "")
+            ))
+        points.sort()
+        if len(points) < 2:
+            return None
+        rows = []
+        previous = None
+        for date, value, _ in points:
+            open_value = previous if previous is not None else value
+            rows.append({
+                "date": date,
+                "open": open_value,
+                "high": max(open_value, value),
+                "low": min(open_value, value),
+                "close": value,
+                "volume": 0
+            })
+            previous = value
+        latest = rows[-1]
+        return {
+            "value": latest["close"],
+            "updated_at": latest["date"],
+            "source": "alternative.me (Bitcoin Fear & Greed)",
+            "symbol": "FNG",
+            "classification": points[-1][2]
+        }, rows
+    except Exception as exc:
+        print(f"비트코인 공포지수 조회 실패: {exc}")
+        return None
 def get_macro(old_data):
     values = {}
     histories = {}
@@ -199,13 +256,23 @@ def get_macro(old_data):
         if name in old_histories:
             histories[name] = old_histories[name]
         print(f"시장 지표 신규 수집 실패: {name}")
+    fear = download_fear_greed()
+    if fear is not None:
+        values[FEAR_GREED_NAME], histories[FEAR_GREED_NAME] = fear
+        print(f"시장 지표 수집 성공: {FEAR_GREED_NAME}")
+    else:
+        if FEAR_GREED_NAME in old_values:
+            values[FEAR_GREED_NAME] = old_values[FEAR_GREED_NAME]
+        if FEAR_GREED_NAME in old_histories:
+            histories[FEAR_GREED_NAME] = old_histories[FEAR_GREED_NAME]
+        print(f"시장 지표 신규 수집 실패: {FEAR_GREED_NAME}")
     count = len(values)
-    if count == len(MACRO_SYMBOLS):
+    if count == MACRO_TOTAL:
         state = "시장 지표 수집 완료"
-        reason = "8개 지표의 데이터가 있습니다. 각 기준일을 확인하세요."
+        reason = f"{MACRO_TOTAL}개 지표의 데이터가 있습니다. 각 기준일을 확인하세요."
     elif count > 0:
         state = "시장 지표 일부 수집"
-        reason = f"8개 지표 중 {count}개 데이터를 확보했습니다."
+        reason = f"{MACRO_TOTAL}개 지표 중 {count}개 데이터를 확보했습니다."
     else:
         state = "시장 지표 수집 실패"
         reason = "시장 지표를 확보하지 못했습니다."
@@ -285,6 +352,99 @@ def calculate_signal(df):
             if not pd.isna(volume20) else None
         )
     }
+def _indicator_series(df):
+    """calculate_signal과 같은 지표 계산 (모든 날짜에 대해)."""
+    close = df["Close"].astype(float)
+    ma20 = close.rolling(20).mean()
+    ma50 = close.rolling(50).mean()
+    std20 = close.rolling(20).std(ddof=0)
+    upper = ma20 + 2 * std20
+    lower = ma20 - 2 * std20
+    band_width = (upper - lower).replace(0, float("nan"))
+    percent_b = (close - lower) / band_width
+    delta = close.diff()
+    gain = delta.clip(lower=0).rolling(14).mean()
+    loss = (-delta.clip(upper=0)).rolling(14).mean()
+    rs = gain / loss.replace(0, float("nan"))
+    rsi = 100 - 100 / (1 + rs)
+    rsi = rsi.mask((loss == 0) & (gain > 0), 100)
+    rsi = rsi.mask((loss == 0) & (gain == 0), 50)
+    high60 = close.rolling(60).max()
+    drawdown = close / high60 - 1
+    return ma20, ma50, percent_b, rsi, drawdown
+def _classify_signal(drawdown, rsi, band):
+    """calculate_signal과 같은 신호 구분 조건."""
+    if drawdown <= -0.23 and rsi <= 28 and band <= -0.05:
+        return "패닉셀"
+    if drawdown <= -0.17 and rsi <= 33 and band <= 0.15:
+        return "급락"
+    if rsi <= 35 and band <= 0.20:
+        return "조정"
+    if rsi <= 42 and band <= 0.25:
+        return "단기조정"
+    return None
+def past_signal_cases(df, signal, horizons=(3, 5, 10, 20), limit=3):
+    """같은 신호가 과거(약 3년)에 발생했을 때 다음 거래일 시가에 매수했다면?
+
+    연속으로 이어진 신호일은 한 번의 사례(첫 날)로 묶고,
+    현재 진행 중인 신호는 제외한 최근 limit건을 돌려준다.
+    """
+    if df is None or len(df) < 61:
+        return None
+    ma20, ma50, percent_b, rsi, drawdown = _indicator_series(df)
+    labels = []
+    for i in range(len(df)):
+        values = (
+            ma20.iloc[i], ma50.iloc[i], percent_b.iloc[i],
+            rsi.iloc[i], drawdown.iloc[i]
+        )
+        if i + 1 < 60 or any(pd.isna(value) for value in values):
+            labels.append(None)
+            continue
+        labels.append(_classify_signal(
+            float(drawdown.iloc[i]), float(rsi.iloc[i]),
+            float(percent_b.iloc[i])
+        ))
+    last_index = len(df) - 1
+    starts = []
+    i = 0
+    while i < len(labels):
+        if labels[i] == signal:
+            start = i
+            while i + 1 < len(labels) and labels[i + 1] == signal:
+                i += 1
+            if i != last_index:
+                starts.append(start)
+        i += 1
+    opens = df["Open"].astype(float)
+    closes = df["Close"].astype(float)
+    cases = []
+    for start in starts:
+        entry = start + 1
+        if entry >= len(df):
+            continue
+        entry_price = float(opens.iloc[entry])
+        if pd.isna(entry_price) or entry_price <= 0:
+            continue
+        returns = {}
+        for days in horizons:
+            exit_index = entry + days
+            returns[str(days)] = (
+                round((float(closes.iloc[exit_index]) / entry_price - 1) * 100, 2)
+                if exit_index < len(df) else None
+            )
+        cases.append({
+            "date": df.index[start].date().isoformat(),
+            "entry_date": df.index[entry].date().isoformat(),
+            "entry_price": round(entry_price, 2),
+            "returns": returns
+        })
+    return {
+        "signal": signal,
+        "years": 3,
+        "total": len(starts),
+        "cases": list(reversed(cases[-limit:]))
+    }
 def get_company_name(ticker):
     # 개별 종목마다 추가 API를 호출하지 않도록 ticker를 기본 이름으로 사용
     return ticker
@@ -293,11 +453,15 @@ def fetch_info(ticker):
     """yfinance 종목 정보를 한 번만 조회해 재사용한다. 실패하면 빈 딕셔너리."""
     if ticker in _INFO_CACHE:
         return _INFO_CACHE[ticker]
-    try:
-        info = yf.Ticker(ticker).info or {}
-    except Exception as exc:
-        print(f"종목 정보 조회 실패 {ticker}: {exc}")
-        info = {}
+    info = {}
+    for attempt in range(3):
+        try:
+            info = yf.Ticker(ticker).info or {}
+            if isinstance(info, dict) and info:
+                break
+        except Exception as exc:
+            print(f"종목 정보 조회 실패 {ticker} (시도 {attempt + 1}/3): {exc}")
+        time.sleep(1.5 * (attempt + 1))
     _INFO_CACHE[ticker] = info if isinstance(info, dict) else {}
     return _INFO_CACHE[ticker]
 def to_number(value):
@@ -355,7 +519,10 @@ def get_analyst_info(tickers, old_info):
             if isinstance(value, dict):
                 result[ticker] = value
     today = datetime.now(KST).date().isoformat()
+    stats = {"attempted": 0, "ok": 0, "failed": []}
     for ticker in tickers:
+        stats["attempted"] += 1
+        time.sleep(0.3)
         stock = yf.Ticker(ticker)
         summary = {}
         brokers = []
@@ -441,7 +608,12 @@ def get_analyst_info(tickers, old_info):
                 "summary": summary,
                 "brokers": brokers,
             }
-    return result
+            stats["ok"] += 1
+        else:
+            stats["failed"].append(ticker)
+            print(f"애널리스트 데이터 없음: {ticker}")
+    print(f"애널리스트 수집: {stats['ok']}/{stats['attempted']}")
+    return result, stats
 def main():
     now_et = datetime.now(ET)
     force = os.getenv("FORCE_SCAN", "0") == "1"
@@ -482,10 +654,17 @@ def main():
         [item["ticker"] for item in signals],
         old_data.get("company_info", {})
     )
-    analyst_info = get_analyst_info(
+    analyst_info, analyst_stats = get_analyst_info(
         [item["ticker"] for item in signals],
         old_data.get("analyst_info", {})
     )
+    signal_cases = {}
+    for item in signals:
+        df3 = download(item["ticker"], "3y")
+        cases = past_signal_cases(df3, item["signal"])
+        if cases is not None:
+            signal_cases[item["ticker"]] = cases
+        time.sleep(0.2)
     output = {
         "updated_at": datetime.now(KST).isoformat(timespec="seconds"),
         "source": "Yahoo Finance / FRED",
@@ -493,6 +672,7 @@ def main():
         "signals": signals,
         "company_info": company_info,
         "analyst_info": analyst_info,
+        "signal_cases": signal_cases,
         "macro": macro,
         "macro_history": macro_history,
         "price_history": price_history,
@@ -505,6 +685,7 @@ def main():
             "is_full_nasdaq100": is_full_nasdaq100,
             "symbols_attempted": len(tickers),
             "symbols_failed": failures,
+            "analyst": analyst_stats,
             "warning": (
                 ""
                 if is_full_nasdaq100
@@ -531,7 +712,7 @@ def main():
     print(f"저장된 종목: {len(price_history)}")
     print(f"매수 신호: {len(signals)}")
     print(f"수집 실패: {failures}")
-    print(f"시장 지표: {len(macro['values'])}/8")
+    print(f"시장 지표: {len(macro['values'])}/{MACRO_TOTAL}")
     print(f"전체 나스닥-100 목록: {is_full_nasdaq100}")
     print(f"저장 파일: {LATEST_FILE}")
     print("================================")
