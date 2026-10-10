@@ -12,6 +12,10 @@ LATEST_FILE = DATA_DIR / "latest.json"
 HISTORY_FILE = DATA_DIR / "signal_history.json"
 KST = ZoneInfo("Asia/Seoul")
 ET = ZoneInfo("America/New_York")
+# 미국 동부시간 기준 정규장(09:30) 30분 전 = 09:00 ET.
+# GitHub Actions 예약 실행은 지연될 수 있어 08:40~09:25 ET 사이에 시작된 실행만 인정한다.
+SCAN_WINDOW_START = 8 * 60 + 40
+SCAN_WINDOW_END = 9 * 60 + 25
 FALLBACK_TICKERS = [
     "AAPL", "MSFT", "NVDA", "AMZN", "META",
     "AVGO", "GOOGL", "GOOG", "COST", "NFLX",
@@ -41,6 +45,12 @@ def write_json(path, data):
     with open(temp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     temp.replace(path)
+def is_scan_time(now_et):
+    """미국 동부시간 평일 08:40~09:25 사이인지 확인한다."""
+    if now_et.weekday() >= 5:
+        return False
+    minutes = now_et.hour * 60 + now_et.minute
+    return SCAN_WINDOW_START <= minutes <= SCAN_WINDOW_END
 def get_tickers():
     try:
         tables = pd.read_html(
@@ -278,18 +288,49 @@ def calculate_signal(df):
 def get_company_name(ticker):
     # 개별 종목마다 추가 API를 호출하지 않도록 ticker를 기본 이름으로 사용
     return ticker
+def get_company_info(tickers, old_info):
+    """신호가 발생한 종목에 한해 섹터·회사명·시가총액을 조회한다.
+
+    신호 계산에는 영향을 주지 않는 표시용 정보이며,
+    조회에 실패하면 이전에 저장된 값을 그대로 유지한다.
+    """
+    info_map = {}
+    if isinstance(old_info, dict):
+        for ticker, value in old_info.items():
+            if isinstance(value, dict):
+                info_map[ticker] = value
+    for ticker in tickers:
+        try:
+            raw = yf.Ticker(ticker).info or {}
+        except Exception as exc:
+            print(f"기업 정보 조회 실패 {ticker}: {exc}")
+            continue
+        entry = dict(info_map.get(ticker, {}))
+        sector = raw.get("sector")
+        if isinstance(sector, str) and sector.strip():
+            entry["sector"] = sector.strip()
+        industry = raw.get("industry")
+        if isinstance(industry, str) and industry.strip():
+            entry["industry"] = industry.strip()
+        name = raw.get("longName") or raw.get("shortName")
+        if isinstance(name, str) and name.strip():
+            entry["company_name"] = name.strip()
+        cap = raw.get("marketCap")
+        if (
+            isinstance(cap, (int, float))
+            and not isinstance(cap, bool)
+            and cap > 0
+        ):
+            entry["market_cap"] = cap
+        if entry:
+            info_map[ticker] = entry
+    return info_map
 def main():
     now_et = datetime.now(ET)
     force = os.getenv("FORCE_SCAN", "0") == "1"
-    if not force:
-        valid_time = (
-            now_et.weekday() < 5
-            and now_et.hour == 3
-            and 15 <= now_et.minute <= 59
-        )
-        if not valid_time:
-            print(f"예약 실행 시간이 아니므로 건너뜁니다: {now_et}")
-            return
+    if not force and not is_scan_time(now_et):
+        print(f"예약 실행 시간이 아니므로 건너뜁니다: {now_et}")
+        return
     old_data = read_json(LATEST_FILE, {})
     tickers, is_full_nasdaq100 = get_tickers()
     signals = []
@@ -320,11 +361,16 @@ def main():
             "기존 latest.json을 덮어쓰지 않습니다."
         )
     macro, macro_history = get_macro(old_data)
+    company_info = get_company_info(
+        [item["ticker"] for item in signals],
+        old_data.get("company_info", {})
+    )
     output = {
         "updated_at": datetime.now(KST).isoformat(timespec="seconds"),
         "source": "Yahoo Finance / FRED",
         "ticker_count": len(price_history),
         "signals": signals,
+        "company_info": company_info,
         "macro": macro,
         "macro_history": macro_history,
         "price_history": price_history,
