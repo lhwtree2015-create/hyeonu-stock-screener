@@ -495,89 +495,213 @@
   // 5. 기업 정보 통합
   // =========================================================
 
-  function getCompanyMeta(item) {
-    const ticker = item.ticker;
+  // =========================================================
+  // 나스닥-100 종목별 섹터 매핑
+  // 기존 데이터에 섹터가 없을 때 사용하는 대체 분류
+  // =========================================================
+  const SECTOR_BY_TICKER = {
+    // 정보기술
+    AAPL: "정보기술",
+    AMD: "정보기술",
+    ADI: "정보기술",
+    ADP: "정보기술",
+    AMAT: "정보기술",
+    ARM: "정보기술",
+    ASML: "정보기술",
+    AVGO: "정보기술",
+    CDNS: "정보기술",
+    CSCO: "정보기술",
+    CTSH: "정보기술",
+    DELL: "정보기술",
+    FTNT: "정보기술",
+    INTC: "정보기술",
+    INTU: "정보기술",
+    KLAC: "정보기술",
+    LRCX: "정보기술",
+    MCHP: "정보기술",
+    MRVL: "정보기술",
+    MSFT: "정보기술",
+    MU: "정보기술",
+    NVDA: "정보기술",
+    NXPI: "정보기술",
+    ON: "정보기술",
+    PANW: "정보기술",
+    PLTR: "정보기술",
+    QCOM: "정보기술",
+    SNPS: "정보기술",
+    STX: "정보기술",
+    SNDK: "정보기술",
+    TEAM: "정보기술",
+    TXN: "정보기술",
+    WDC: "정보기술",
+    ZS: "정보기술",
 
-    const companyInfo = latestData.company_info || {};
-    const stockInfo = latestData.stock_info || {};
-    const universe = latestData.universe || {};
-    const companies = latestData.companies || {};
-    const profiles = latestData.company_profiles || {};
-    const alternateProfiles = latestData.profiles || {};
+    // 커뮤니케이션 서비스
+    CHTR: "커뮤니케이션 서비스",
+    CMCSA: "커뮤니케이션 서비스",
+    EA: "커뮤니케이션 서비스",
+    GOOG: "커뮤니케이션 서비스",
+    GOOGL: "커뮤니케이션 서비스",
+    META: "커뮤니케이션 서비스",
+    NFLX: "커뮤니케이션 서비스",
+    TMUS: "커뮤니케이션 서비스",
+    TTWO: "커뮤니케이션 서비스",
+    VRSK: "산업재",
 
-    const base =
-      companyInfo[ticker] ||
-      stockInfo[ticker] ||
-      universe[ticker] ||
-      companies[ticker] ||
-      {};
+    // 경기소비재
+    ABNB: "경기소비재",
+    AMZN: "경기소비재",
+    BKNG: "경기소비재",
+    DASH: "경기소비재",
+    LULU: "경기소비재",
+    MAR: "경기소비재",
+    MELI: "경기소비재",
+    ORLY: "경기소비재",
+    PDD: "경기소비재",
+    ROST: "경기소비재",
+    SBUX: "경기소비재",
+    TSLA: "경기소비재",
 
-    const profile =
-      profiles[ticker] ||
-      alternateProfiles[ticker] ||
-      {};
+    // 필수소비재
+    COST: "필수소비재",
+    KDP: "필수소비재",
+    MDLZ: "필수소비재",
+    MNST: "필수소비재",
+    PEP: "필수소비재",
+    WMT: "필수소비재",
 
-    const meta = { ...profile, ...base };
+    // 헬스케어
+    AMGN: "헬스케어",
+    BIIB: "헬스케어",
+    DXCM: "헬스케어",
+    GILD: "헬스케어",
+    IDXX: "헬스케어",
+    ISRG: "헬스케어",
+    MRNA: "헬스케어",
+    REGN: "헬스케어",
+    VRTX: "헬스케어",
 
-    const price = number(
-      meta.current_price ??
-      meta.currentPrice ??
-      meta.price ??
-      item.current_price ??
-      item.close
-    );
+    // 산업재
+    ADIY: "산업재",
+    HON: "산업재",
+    PCAR: "산업재",
+    PAYX: "산업재",
+    FAST: "산업재",
+    CTAS: "산업재",
+    CPRT: "산업재",
+    ODFL: "산업재",
+    ROP: "산업재",
+    AXON: "산업재",
 
-    const change = number(
-      meta.change ??
-      meta.price_change ??
-      meta.priceChange ??
-      item.change
-    );
+    // 유틸리티
+    AEP: "유틸리티",
+    CEG: "유틸리티",
+    XEL: "유틸리티",
 
-    const changePct = number(
-      meta.change_percent ??
-      meta.change_pct ??
-      meta.changePercent ??
-      item.change_percent ??
-      item.change_pct
-    );
+    // 소재
+    LIN: "소재",
 
-    const cap = number(
-      meta.market_cap ??
-      meta.marketCap ??
-      meta.market_capitalization ??
-      item.market_cap ??
-      item.marketCap
-    );
+    // 에너지
+    FANG: "에너지",
 
-    const sectorCandidates = [
-      meta.sector,
-      meta.gics_sector,
-      meta.gicsSector,
-      item.sector,
-      latestData.sectors?.[ticker]
-    ];
+    // 금융·기타 업종으로 분류될 수 있는 종목
+    PYPL: "금융",
+    COIN: "금융",
+    HOOD: "금융",
+    MSTR: "정보기술",
+    SHOP: "경기소비재"
+  };
 
-    const sector = sectorCandidates.find(
-      value => typeof value === "string" && value.trim()
-    ) || "섹터 미확인";
+  
+function getCompanyMeta(item) {
+  const ticker = normalizeTicker(item.ticker);
 
-    const exchange =
-      meta.index ||
-      meta.exchange ||
-      item.index ||
-      "나스닥-100";
+  const companyInfo = latestData.company_info || {};
+  const stockInfo = latestData.stock_info || {};
+  const universe = latestData.universe || {};
+  const companies = latestData.companies || {};
+  const profiles = latestData.company_profiles || {};
+  const alternateProfiles = latestData.profiles || {};
 
-    return {
-      meta,
-      price,
-      change,
-      changePct,
-      cap,
-      sector,
-      exchange
-    };
-  }
+  const base =
+    companyInfo[ticker] ||
+    stockInfo[ticker] ||
+    universe[ticker] ||
+    companies[ticker] ||
+    {};
+
+  const profile =
+    profiles[ticker] ||
+    alternateProfiles[ticker] ||
+    {};
+
+  const meta = { ...profile, ...base };
+
+  const price = number(
+    meta.current_price ??
+    meta.currentPrice ??
+    meta.price ??
+    item.current_price ??
+    item.close
+  );
+
+  const change = number(
+    meta.change ??
+    meta.price_change ??
+    meta.priceChange ??
+    item.change
+  );
+
+  const changePct = number(
+    meta.change_percent ??
+    meta.change_pct ??
+    meta.changePercent ??
+    item.change_percent ??
+    item.change_pct
+  );
+
+  const cap = number(
+    meta.market_cap ??
+    meta.marketCap ??
+    meta.market_capitalization ??
+    item.market_cap ??
+    item.marketCap
+  );
+
+  // 실제 데이터의 섹터를 우선 사용하고,
+  // 없으면 티커별 대체 분류표를 사용한다.
+  const sectorCandidates = [
+    meta.sector,
+    meta.gics_sector,
+    meta.gicsSector,
+    item.sector,
+    latestData.sectors?.[ticker],
+    SECTOR_BY_TICKER[ticker]
+  ];
+
+  const sector = sectorCandidates.find(
+    value =>
+      typeof value === "string" &&
+      value.trim().length > 0
+  ) || "섹터 미확인";
+
+  const exchange =
+    meta.index ||
+    meta.exchange ||
+    item.index ||
+    "나스닥-100";
+
+  return {
+    meta,
+    price,
+    change,
+    changePct,
+    cap,
+    sector,
+    exchange
+  };
+}
+
 
   // =========================================================
   // 6. 페이지 이동
