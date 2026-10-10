@@ -14,16 +14,30 @@
     "단기조정": 1
   };
 
-  const MACRO_NAMES = [
-    "나스닥-100",
-    "S&P 500",
-    "미국 2년물 금리",
-    "미국 10년물 금리",
-    "VIX",
-    "금",
-    "원·달러 환율",
-    "비트코인"
+  // 시장 요약 화면의 섹션 구성 (한 줄에 지표 2개씩 묶어서 표시)
+  const MACRO_SECTIONS = [
+    { title: "시장지수", items: ["나스닥-100", "S&P 500"] },
+    { title: "채권금리", items: ["미국 2년물 금리", "미국 10년물 금리"] },
+    { title: "공포지수", items: ["VIX", "비트코인 공포지수"] },
+    { title: "안전자산", items: ["금", "비트코인"] },
+    { title: "달러", items: ["원·달러 환율", "달러 인덱스"] }
   ];
+
+  const MACRO_NAMES = MACRO_SECTIONS.flatMap(section => section.items);
+
+  const MACRO_LABELS = {
+    "미국 2년물 금리": "미국 2년물",
+    "미국 10년물 금리": "미국 10년물"
+  };
+
+  // alternative.me 분류명 → 한글 표시와 색상 톤
+  const FEAR_LABELS = {
+    "Extreme Fear": ["극단적 공포", "down"],
+    "Fear": ["공포", "down"],
+    "Neutral": ["중립", "flat"],
+    "Greed": ["탐욕", "up"],
+    "Extreme Greed": ["극단적 탐욕", "up"]
+  };
 
   const FAVORITES_KEY = "hyeonu-stock-favorites";
   const VALID_PERIODS = [30, 90, 180, 365];
@@ -794,53 +808,67 @@
     const values = macro.values || {};
     const histories = data.macro_history || {};
 
-    setHTML(
-      "#marketState",
-      `<div class="state-title">시장 상태</div>
-       <h3>${safe(macro.state || "분석 데이터 대기")}</h3>
-       <p>${safe(macro.reason || "시장 지표 연결 대기 중입니다.")}</p>`
-    );
-
     const container = $("#macroMetrics");
 
     if (!container) {
       return;
     }
 
-    container.innerHTML = MACRO_NAMES.map((name, index) => {
+    const half = name => {
+      const index = MACRO_NAMES.indexOf(name);
       const raw = values[name];
       const value = isObject(raw) ? raw.value : raw;
-      const updatedAt =
-        isObject(raw) && validDate(raw.updated_at)
-          ? raw.updated_at
-          : "데이터 미확인";
-
-      const suffix = name.includes("금리")
-        ? "%"
-        : name === "VIX"
-          ? "pt"
-          : "";
-
       const numericValue = number(value);
 
+      const updatedAt =
+        isObject(raw) && validDate(raw.updated_at)
+          ? raw.updated_at.slice(5)
+          : "";
+
+      const suffix = name.includes("금리") ? "%" : "";
+      const label = MACRO_LABELS[name] || name;
+
+      const fear =
+        name === "비트코인 공포지수" && isObject(raw)
+          ? FEAR_LABELS[raw.classification]
+          : null;
+
       return `
-        <article class="metric macro-card">
-          <span>${safe(name)}</span>
-          <b>${numericValue === null
-            ? "—"
-            : safe(fmt(numericValue) + suffix)}</b>
-          <small>${safe(updatedAt)}</small>
+        <div class="mc-half">
+          <div class="mc-label">
+            <span>${safe(label)}</span>
+            <small>${safe(updatedAt)}</small>
+          </div>
+          <div class="mc-value">${
+            numericValue === null
+              ? "—"
+              : safe(fmt(numericValue) + suffix)
+          }${
+            fear
+              ? ` <em class="mc-fear ${fear[1]}">${safe(fear[0])}</em>`
+              : ""
+          }</div>
           ${macroTrendMarkup(histories[name])}
           <div class="macro-chart-wrap">
             <canvas
               id="macroChart${index}"
               class="macro-chart"
-              aria-label="${safe(name)} 최근 추이">
+              aria-label="${safe(label)} 최근 30일 캔들 차트">
             </canvas>
           </div>
-          <div class="macro-range">최근 30일</div>
-        </article>`;
-    }).join("");
+        </div>`;
+    };
+
+    container.innerHTML = MACRO_SECTIONS.map(section => `
+      <section class="mc-section">
+        <h3 class="mc-title">
+          <span>${safe(section.title)}</span>
+          <i></i>
+          <em>최근 30일 · 일봉</em>
+        </h3>
+        <div class="mc-card">${section.items.map(half).join("")}</div>
+      </section>`
+    ).join("");
 
     MACRO_NAMES.forEach((name, index) => {
       drawMacroChart(
@@ -880,7 +908,7 @@
 
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const width = Math.max(120, canvas.clientWidth || 200);
-    const height = 62;
+    const height = 46;
 
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
@@ -902,9 +930,21 @@
       return;
     }
 
-    const values = visible.map(row => number(row.close));
-    let min = Math.min(...values);
-    let max = Math.max(...values);
+    // 시가·고가·저가가 없는 지표는 종가로 대체
+    const candles = visible.map(row => {
+      const close = number(row.close);
+      const open = number(row.open) ?? close;
+
+      return {
+        open,
+        close,
+        high: Math.max(number(row.high) ?? close, open, close),
+        low: Math.min(number(row.low) ?? close, open, close)
+      };
+    });
+
+    let min = Math.min(...candles.map(candle => candle.low));
+    let max = Math.max(...candles.map(candle => candle.high));
 
     if (!Number.isFinite(min) || !Number.isFinite(max)) {
       return;
@@ -916,34 +956,44 @@
       max += padding;
     }
 
-    ctx.strokeStyle = "#eaecf0";
+    ctx.strokeStyle = "#eef1f6";
     ctx.lineWidth = 1;
 
     for (let i = 0; i <= 2; i++) {
-      const y = 4 + (height - 8) * i / 2;
+      const gy = 4 + (height - 8) * i / 2;
       ctx.beginPath();
-      ctx.moveTo(3, y);
-      ctx.lineTo(width - 3, y);
+      ctx.moveTo(3, gy);
+      ctx.lineTo(width - 3, gy);
       ctx.stroke();
     }
 
-    ctx.beginPath();
+    const y = value => 4 + (max - value) / (max - min) * (height - 8);
+    const step = (width - 6) / candles.length;
+    const bodyWidth = Math.max(1.5, Math.min(7, step * 0.6));
 
-    values.forEach((value, index) => {
-      const x = 3 + index / (values.length - 1) * (width - 6);
-      const y = 4 + (max - value) / (max - min) * (height - 8);
+    candles.forEach((candle, index) => {
+      const x = 3 + step * (index + 0.5);
+      const color = candle.close >= candle.open ? "#d92d20" : "#245eea";
 
-      if (index === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+      ctx.moveTo(x, y(candle.high));
+      ctx.lineTo(x, y(candle.low));
+      ctx.stroke();
+
+      const top = y(Math.max(candle.open, candle.close));
+      const bottom = y(Math.min(candle.open, candle.close));
+
+      ctx.fillRect(
+        x - bodyWidth / 2,
+        top,
+        bodyWidth,
+        Math.max(1, bottom - top)
+      );
     });
-
-    ctx.strokeStyle = "#3b5fe5";
-    ctx.lineWidth = 1.7;
-    ctx.lineJoin = "round";
-    ctx.stroke();
   }
 
   // =========================================================
@@ -1447,6 +1497,7 @@
       <section class="sector-group" data-sector="${safe(sector)}">
         <h3 class="sector-group-title">
           <span>${safe(sector)}</span>
+          <i></i>
           <b>${entries.length}개 종목</b>
         </h3>
         <div class="sector-group-body">
@@ -1584,6 +1635,28 @@
 
   function renderAnalystSection(item, meta, price) {
     const data = getAnalystData(item.ticker, meta.meta);
+
+    const hasAnalystData =
+      data.buyCount !== null ||
+      data.targetMean !== null ||
+      data.brokers.length > 0;
+
+    if (!hasAnalystData) {
+      const stats = latestData.scan_meta?.analyst;
+
+      const detail = isObject(stats)
+        ? `최근 스캔에서 신호 종목 ${fmt(stats.attempted, 0)}개 중 ${fmt(stats.ok, 0)}개의 데이터를 받았습니다. 데이터 제공처(야후)가 응답하지 않았을 수 있습니다.`
+        : "아직 애널리스트 수집이 실행되지 않았습니다. 최신 scan.py로 스캔을 한 번 실행해 주세요.";
+
+      return `
+        <section class="sd-analyst-card">
+          <p class="eyebrow">WALL STREET CONSENSUS</p>
+          <h3>애널리스트 투자의견 · 목표가</h3>
+          <p class="sd-analyst-empty">
+            이 종목의 애널리스트 데이터가 없습니다. ${safe(detail)}
+          </p>
+        </section>`;
+    }
 
     const targetUpside =
       data.targetMean !== null &&
@@ -1759,6 +1832,99 @@
     showPage("detail");
 
     requestAnimationFrame(drawStockChart);
+  }
+
+  // 과거 3년간 같은 신호가 나왔을 때 다음날 시가에 샀다면 (최근 3건)
+  function renderSignalCases(item) {
+    const info = latestData.signal_cases?.[item.ticker];
+    const horizons = [3, 5, 10, 20];
+
+    const head = `
+      <p class="eyebrow">PAST SIGNALS · 3 YEARS</p>
+      <h3>과거 3년 동일 신호 사례</h3>`;
+
+    if (!isObject(info) || !Array.isArray(info.cases)) {
+      return `
+        <section class="sd-cases-card">${head}
+          <p class="sd-analyst-empty">
+            과거 사례 데이터가 아직 없습니다. 최신 scan.py로 스캔하면 표시됩니다.
+          </p>
+        </section>`;
+    }
+
+    if (!info.cases.length) {
+      return `
+        <section class="sd-cases-card">${head}
+          <p class="sd-analyst-empty">
+            과거 3년간 '${safe(info.signal || item.signal)}' 신호의 사례가 없습니다.
+          </p>
+        </section>`;
+    }
+
+    const valueOf = (entry, days) => number(entry.returns?.[String(days)]);
+
+    const cell = value =>
+      value === null
+        ? '<td class="case-none">미확정</td>'
+        : `<td class="${value > 0 ? "case-win" : "case-loss"}">${safe(signed(value))}</td>`;
+
+    const rows = info.cases.map(entry => `
+      <tr>
+        <td>${safe(entry.date)}</td>
+        ${horizons.map(days => cell(valueOf(entry, days))).join("")}
+      </tr>`
+    ).join("");
+
+    const summary = horizons.map(days => {
+      const values = info.cases
+        .map(entry => valueOf(entry, days))
+        .filter(value => value !== null);
+
+      const wins = values.filter(value => value > 0).length;
+
+      const average = values.length
+        ? values.reduce((sum, value) => sum + value, 0) / values.length
+        : null;
+
+      return { average, wins, count: values.length };
+    });
+
+    const averageCells = summary.map(item =>
+      item.average === null
+        ? "<td>—</td>"
+        : `<td class="${item.average > 0 ? "case-up" : item.average < 0 ? "case-down" : ""}">${safe(signed(item.average))}</td>`
+    ).join("");
+
+    const rateCells = summary.map(item =>
+      item.count
+        ? `<td>${Math.round(item.wins / item.count * 100)}% (${item.wins}/${item.count})</td>`
+        : "<td>—</td>"
+    ).join("");
+
+    return `
+      <section class="sd-cases-card">${head}
+        <p class="sd-cases-sub">
+          '${safe(info.signal || item.signal)}' 신호 3년간 총 ${safe(fmt(info.total, 0))}회 중
+          최근 ${info.cases.length}회 · 다음날 시가 진입 기준
+        </p>
+        <table class="sd-cases-table">
+          <thead>
+            <tr>
+              <th>신호일</th>
+              ${horizons.map(days => `<th>${days}일</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+            <tr class="sum"><td>평균 수익률</td>${averageCells}</tr>
+            <tr class="sum"><td>승률</td>${rateCells}</tr>
+          </tbody>
+        </table>
+        <p class="sd-cases-legend">
+          <span class="case-up">■ 빨강 = 승(+)</span>
+          <span class="case-down">■ 파랑 = 패(−)</span>
+        </p>
+      </section>`;
   }
 
   function renderDetail(item) {
@@ -1965,6 +2131,8 @@
       ? "—"
       : `$${fmt(price)}`;
 
+    const casesMarkup = renderSignalCases(item);
+
     const analystMarkup = renderAnalystSection(
       item,
       meta,
@@ -2086,6 +2254,8 @@
             누락된 데이터는 임의 추정하지 않습니다.
           </small>
         </section>
+
+        ${casesMarkup}
 
         ${analystMarkup}
       </div>
@@ -2460,7 +2630,7 @@
   // =========================================================
 
   function calculatePerformance() {
-    const targets = [5, 10, 20];
+    const targets = [3, 5, 10, 20];
     const entries = [];
     const seen = new Set();
 
@@ -2532,6 +2702,10 @@
     const summary = $("#performanceSummary");
 
     if (summary) {
+      const waiting = entries.filter(
+        item => item.status !== "entered"
+      ).length;
+
       const cards = targets.map(days => {
         const known = entries.filter(
           item =>
@@ -2539,6 +2713,7 @@
             Number.isFinite(item[days])
         );
 
+        // 승 = 수익률이 + 인 경우
         const wins = known.filter(
           item => item[days] > 0
         ).length;
@@ -2550,41 +2725,36 @@
             ) / known.length
           : null;
 
-        const winRate = known.length
-          ? `${(wins / known.length * 100).toFixed(1)}%`
-          : "—";
+        const rate = known.length
+          ? Math.round(wins / known.length * 100)
+          : null;
+
+        const tone =
+          average === null || average === 0
+            ? "flat"
+            : average > 0
+              ? "win"
+              : "loss";
 
         return `
-          <article class="metric">
-            <span>${days}거래일</span>
-            <b>${average === null ? "—" : signed(average)}</b>
-            <small>
-              승률 ${winRate} · 확정 ${known.length} ·
-              미확정 ${entries.length - known.length}
-            </small>
+          <article class="hist-card">
+            <span class="hist-card-label">${days}거래일</span>
+            <b class="hist-card-value ${tone}">${
+              average === null ? "—" : safe(signed(average))
+            }</b>
+            <small>${
+              rate === null
+                ? "승률 —"
+                : `승률 ${rate}% (${wins}/${known.length})`
+            } · 미확정 ${entries.length - known.length}</small>
           </article>`;
       });
 
-      const waiting = entries.filter(
-        item => item.status !== "entered"
-      ).length;
-
-      const latestDate = entries.length
-        ? entries.reduce(
-            (maximum, item) => item.date > maximum ? item.date : maximum,
-            entries[0].date
-          )
-        : null;
-
-      cards.push(`
-        <article class="metric">
-          <span>누적 신호</span>
-          <b>${entries.length}건</b>
-          <small>
-            ${latestDate ? `최근 신호일 ${safe(latestDate)}` : "저장된 신호 없음"}
-            ${waiting ? ` · 진입 대기 ${waiting}` : ""}
-          </small>
-        </article>`);
+      setText(
+        "#historyMeta",
+        `누적 ${entries.length}건` +
+          (waiting ? ` · 진입 대기 ${waiting}` : "")
+      );
 
       summary.innerHTML = cards.join("");
     }
@@ -2603,11 +2773,11 @@
 
     const chip = (label, value) => {
       const tone =
-        value === null
+        value === null || value === 0
           ? "neutral"
           : value < 0
-            ? "negative"
-            : "positive";
+            ? "loss"
+            : "win";
 
       return `<span class="hist-chip ${tone}">${safe(label)} ${
         value === null ? "미확정" : safe(signed(value))
@@ -3449,9 +3619,368 @@
   // 15. 초기화
   // =========================================================
 
+  // 전체 디자인 (헤더·탭·카드·섹션 제목·시장 요약·이력·과거 사례)
+  function installRedesignStyles() {
+    if ($("#redesignStyles")) {
+      return;
+    }
+
+    const style = document.createElement("style");
+    style.id = "redesignStyles";
+
+    style.textContent = `
+      body {
+        background: #f2f4f9;
+        font-family: "Noto Sans KR", -apple-system, BlinkMacSystemFont,
+          "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+      }
+
+      header.top {
+        flex-direction: row;
+        align-items: center;
+        padding: 22px 0 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .brand-logo {
+        display: grid;
+        flex: 0 0 38px;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 12px;
+        background: #245eea;
+        color: #fff;
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 800;
+        letter-spacing: -.03em;
+      }
+
+      .brand #updated {
+        display: block;
+        margin-top: 1px;
+        color: #7b8794;
+        font-size: 11px;
+        text-align: left;
+      }
+
+      .refresh-button {
+        flex-shrink: 0;
+        padding: 8px 13px;
+        border: 0;
+        border-radius: 999px;
+        background: #e6edff;
+        color: #245eea;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 0;
+        margin: 16px auto 14px;
+        padding: 4px;
+        overflow: visible;
+        border-radius: 14px;
+        background: #e6eaf2;
+      }
+
+      .tabs button {
+        flex: 1;
+        padding: 9px 0;
+        border: 0;
+        border-radius: 11px;
+        background: transparent;
+        color: #667085;
+        font-size: 12.5px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .tabs button.active {
+        background: #fff;
+        color: #245eea;
+        font-weight: 800;
+        box-shadow: 0 1px 4px rgba(16,24,40,.12);
+      }
+
+      .panel, .metric, .notice {
+        border: 0;
+        border-radius: 18px;
+        box-shadow: 0 1px 2px rgba(16,24,40,.05),
+          0 6px 18px rgba(16,24,40,.05);
+      }
+
+      #scannerStatus {
+        padding: 0 2px;
+        background: none;
+        box-shadow: none;
+        color: #98a2b3;
+        font-size: 11px;
+      }
+
+      /* 섹션 제목 (시장 요약·스캐너 섹터·이력) 공통 */
+      .mc-title, .sector-group-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 20px 2px 10px;
+        padding: 0;
+        border: 0;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: -.02em;
+      }
+
+      .mc-title i, .sector-group-title i {
+        flex: 1;
+        height: 1px;
+        background: #dde2ec;
+      }
+
+      .mc-title em, .sector-group-title b {
+        color: #98a2b3;
+        font-size: 11px;
+        font-style: normal;
+        font-weight: 500;
+      }
+
+      /* 시장 요약 */
+      #macroMetrics {
+        display: block;
+      }
+
+      .mc-card {
+        display: flex;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(16,24,40,.05),
+          0 6px 18px rgba(16,24,40,.05);
+      }
+
+      .mc-half {
+        flex: 1;
+        min-width: 0;
+        padding: 14px 15px;
+      }
+
+      .mc-half + .mc-half {
+        border-left: 1px solid #eef1f6;
+      }
+
+      .mc-label {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 6px;
+        color: #667085;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .mc-label small {
+        color: #b0b8c4;
+        font-size: 10px;
+        font-weight: 400;
+      }
+
+      .mc-value {
+        margin: 3px 0 2px;
+        font-size: clamp(18px, 5.4vw, 22px);
+        font-weight: 800;
+        letter-spacing: -.03em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .mc-fear {
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      .mc-fear.up { color: #d92d20; }
+      .mc-fear.down { color: #245eea; }
+      .mc-fear.flat { color: #667085; }
+
+      .mc-half .macro-chart-wrap {
+        height: 46px;
+        margin-top: 8px;
+      }
+
+      .mc-half .macro-chart {
+        height: 46px;
+      }
+
+      @media (min-width: 760px) {
+        #macroMetrics {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          column-gap: 14px;
+        }
+      }
+
+      /* 이력·성과 */
+      .hist-grid, #performanceSummary {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      @media (min-width: 760px) {
+        .hist-grid, #performanceSummary {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+
+      .hist-card {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 13px 14px;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(16,24,40,.05),
+          0 6px 18px rgba(16,24,40,.05);
+      }
+
+      .hist-card-label {
+        color: #667085;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .hist-card-value {
+        font-size: 23px;
+        font-weight: 800;
+        letter-spacing: -.03em;
+      }
+
+      .hist-card-value.win { color: #d92d20; }
+      .hist-card-value.loss { color: #245eea; }
+      .hist-card-value.flat { color: #667085; }
+
+      .hist-card small {
+        color: #7b8794;
+        font-size: 11px;
+      }
+
+      .history-row {
+        padding: 13px 14px;
+      }
+
+      .hist-chip {
+        display: inline-block;
+        margin: 7px 6px 0 0;
+        padding: 4px 9px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .hist-chip.win { background: #fee4e2; color: #d92d20; }
+      .hist-chip.loss { background: #e3ebff; color: #245eea; }
+      .hist-chip.neutral { background: #f2f4f7; color: #7b8794; }
+
+      /* 종목 상세: 과거 3년 동일 신호 사례 */
+      .sd-cases-card {
+        margin: 14px 0;
+        padding: 14px;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(16,24,40,.05),
+          0 6px 18px rgba(16,24,40,.05);
+      }
+
+      .sd-cases-card h3 {
+        margin: 0 0 4px;
+        font-size: 17px;
+      }
+
+      .sd-cases-sub {
+        margin: 0 0 8px;
+        color: #7b8794;
+        font-size: 11px;
+      }
+
+      .sd-cases-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+
+      .sd-cases-table th {
+        padding: 6px 3px;
+        color: #7b8794;
+        font-weight: 600;
+        text-align: right;
+      }
+
+      .sd-cases-table td {
+        padding: 9px 3px;
+        border-top: 1px solid #f0f2f7;
+        text-align: right;
+      }
+
+      .sd-cases-table th:first-child,
+      .sd-cases-table td:first-child {
+        text-align: left;
+      }
+
+      .sd-cases-table td.case-win {
+        background: #fee4e2;
+        color: #d92d20;
+        font-weight: 700;
+      }
+
+      .sd-cases-table td.case-loss {
+        background: #e3ebff;
+        color: #245eea;
+        font-weight: 700;
+      }
+
+      .sd-cases-table td.case-none {
+        color: #98a2b3;
+      }
+
+      .sd-cases-table tr.sum td {
+        border-top: 2px solid #e4e7ec;
+        font-weight: 800;
+      }
+
+      .sd-cases-table td.case-up { color: #d92d20; }
+      .sd-cases-table td.case-down { color: #245eea; }
+
+      .sd-cases-legend {
+        display: flex;
+        gap: 12px;
+        margin: 10px 0 0;
+        font-size: 11px;
+      }
+
+      .sd-cases-legend .case-up { color: #d92d20; }
+      .sd-cases-legend .case-down { color: #245eea; }
+    `;
+
+    document.head.appendChild(style);
+  }
+
   function initialize() {
     readFavorites();
     installExtraStyles();
+    installRedesignStyles();
     enhanceScannerToolbar();
 
     $$(".tabs [data-page]").forEach(button => {
