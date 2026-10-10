@@ -1,41 +1,41 @@
-
 name: Daily Stock Scan
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 7 * * 1-5'
-    - cron: '30 8 * * 1-5'
+    # 미국 동부시간 08:45 ET에 시작 (정규장 09:30 개장 30분 전 재검색)
+    # GitHub cron은 UTC 기준이라 서머타임(EDT)과 표준시(EST)용을 각각 둔다.
+    # 시간 판정은 scripts/scan.py의 is_scan_time()이 최종 확인한다.
+    - cron: '45 12 * * 1-5'   # 08:45 EDT (3월 중순~11월 초)
+    - cron: '45 13 * * 1-5'   # 08:45 EST (11월 초~3월 중순)
 
 permissions:
   contents: write
+
+concurrency:
+  group: daily-stock-scan
+  cancel-in-progress: false
 
 jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
+      - run: pip install -r requirements.txt
       - name: Run scan
         env:
           FORCE_SCAN: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
         run: python scripts/scan.py
-
-      - name: Save scan results
+      - name: Save results
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/latest.json data/signal_history.json
           if ! git diff --cached --quiet; then
             git commit -m "Update daily scan data"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
             git push
           fi
