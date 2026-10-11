@@ -286,5 +286,15 @@ def main():
     }
     write_json(OUTPUT_FILE, output)
     print(f"저장 완료: 거래 {len(unique)}건 · 문서 {len(reports)}건 · 오류 {len(errors)}건")
+def run():
+    """실행 결과를 상태 파일에 남겨, 실패해도 화면에서 이유를 볼 수 있게 한다."""
+    status_file = OUTPUT_FILE.parent / "trump_status.json"
+    now = datetime.now(KST).isoformat(timespec="seconds")
+    try:
+        main()
+        write_json(status_file, {"ok": True, "at": now})
+    except Exception as exc:
+        write_json(status_file, {"ok": False, "at": now, "error": str(exc)[:600]})
+        raise
 if __name__ == "__main__":
-    main()
+    run()

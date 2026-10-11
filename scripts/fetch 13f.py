@@ -300,7 +300,7 @@ def main():
             if previous:
                 institutions.append(previous)
     if not institutions:
-        raise RuntimeError("13F 데이터를 하나도 받지 못했습니다. 기존 파일을 유지합니다.")
+        raise RuntimeError("13F 데이터를 하나도 받지 못했습니다. " + " | ".join(errors[:3]))
     cusips = []
     for institution in institutions:
         for quarter in institution["quarters"]:
@@ -319,5 +319,15 @@ def main():
     }
     write_json(OUTPUT_FILE, output)
     print(f"저장 완료: 기관 {len(institutions)}곳 (실패 {len(errors)})")
+def run():
+    """실행 결과를 상태 파일에 남겨, 실패해도 화면에서 이유를 볼 수 있게 한다."""
+    status_file = OUTPUT_FILE.parent / "13f_status.json"
+    now = datetime.now(KST).isoformat(timespec="seconds")
+    try:
+        main()
+        write_json(status_file, {"ok": True, "at": now})
+    except Exception as exc:
+        write_json(status_file, {"ok": False, "at": now, "error": str(exc)[:600]})
+        raise
 if __name__ == "__main__":
-    main()
+    run()
