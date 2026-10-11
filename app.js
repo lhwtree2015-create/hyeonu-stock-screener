@@ -42,12 +42,25 @@
   const FAVORITES_KEY = "hyeonu-stock-favorites";
   const VALID_PERIODS = [30, 90, 180, 365];
   const UNKNOWN_SECTOR = "섹터 미확인";
-  const PAGE_ORDER = ["macro", "scanner", "detail", "history"];
+  const PAGE_ORDER = [
+    "macro", "scanner", "detail", "history",
+    "universe", "filings", "trump"
+  ];
 
   let latestData = {};
   let signals = [];
   let historyRecords = [];
   let selectedTicker = null;
+  let indicatorsOn = false;
+  let currentItem = null;
+  let detailHint = {};
+  let detailReturn = "scanner";
+  const livePrices = new Map();
+  const extraPrices = new Map();
+  const shardCache = new Map();
+  const externalMeta = {};
+  const refreshHooks = [];
+  const pageHooks = [];
   let chartPeriod = 90;
   let resizeTimer = null;
   let favorites = new Set();
@@ -415,7 +428,7 @@
 
   function getPriceRows(ticker) {
     return normalizePriceRows(
-      latestData.price_history?.[ticker]
+      latestData.price_history?.[ticker] || extraPrices.get(ticker)
     );
   }
 
@@ -644,6 +657,7 @@
       stockInfo[ticker] ||
       universe[ticker] ||
       companies[ticker] ||
+      externalMeta[ticker] ||
       {};
 
     const profile =
@@ -707,11 +721,15 @@
       item.index ||
       "나스닥-100";
 
+    // 실시간 시세가 있으면 스캔 시점의 가격보다 우선한다
+    const live = livePrices.get(ticker);
+
     return {
       meta,
-      price,
-      change,
-      changePct,
+      price: live ? live.price : price,
+      change: live && live.change !== null ? live.change : change,
+      changePct:
+        live && live.changePct !== null ? live.changePct : changePct,
       cap,
       sector,
       exchange
@@ -736,6 +754,19 @@
         "active",
         page.id === `page-${name}`
       );
+    });
+
+    $(".tabs [data-page].active")?.scrollIntoView?.({
+      inline: "center",
+      block: "nearest"
+    });
+
+    pageHooks.forEach(hook => {
+      try {
+        hook(name);
+      } catch (error) {
+        console.error("[page hook]", error);
+      }
     });
 
     if (name === "detail") {
@@ -1633,6 +1664,17 @@
     };
   }
 
+  // 현재 날짜 기준 1년 이내인지
+  function withinLastYear(value) {
+    if (!validDate(value)) {
+      return false;
+    }
+
+    const cutoff = Date.now() - 365 * 86400000;
+
+    return new Date(`${value}T12:00:00Z`).getTime() >= cutoff;
+  }
+
   function renderAnalystSection(item, meta, price) {
     const data = getAnalystData(item.ticker, meta.meta);
 
@@ -1644,9 +1686,11 @@
     if (!hasAnalystData) {
       const stats = latestData.scan_meta?.analyst;
 
-      const detail = isObject(stats)
+      const detail = !item.signal
+        ? "애널리스트 의견은 매수 신호가 발생한 종목에 한해 수집됩니다."
+        : isObject(stats)
         ? `최근 스캔에서 신호 종목 ${fmt(stats.attempted, 0)}개 중 ${fmt(stats.ok, 0)}개의 데이터를 받았습니다. 데이터 제공처(야후)가 응답하지 않았을 수 있습니다.`
-        : "아직 애널리스트 수집이 실행되지 않았습니다. 최신 scan.py로 스캔을 한 번 실행해 주세요.";
+        : "이 데이터에는 애널리스트 수집 기록이 없습니다.";
 
       return `
         <section class="sd-analyst-card">
@@ -1654,6 +1698,7 @@
           <h3>애널리스트 투자의견 · 목표가</h3>
           <p class="sd-analyst-empty">
             이 종목의 애널리스트 데이터가 없습니다. ${safe(detail)}
+            <br><small>${safe(scanDiagnosis())}</small>
           </p>
         </section>`;
     }
@@ -1666,8 +1711,8 @@
         : null;
 
     const brokerRows = data.brokers
+      .filter(row => isObject(row) && withinLastYear(row.date))
       .slice(0, 30)
-      .filter(isObject)
       .map(row => {
         const firm =
           row.firm ||
@@ -1712,6 +1757,11 @@
           <div>
             <p class="eyebrow">WALL STREET CONSENSUS</p>
             <h3>애널리스트 투자의견 · 목표가</h3>
+            <p class="sd-analyst-window">최근 1년 이내 의견만 집계${
+              data.analystCount === null
+                ? ""
+                : ` · ${safe(fmt(data.analystCount, 0))}개 증권사`
+            }</p>
           </div>
           <span class="sd-analyst-date">
             ${safe(
@@ -1822,6 +1872,9 @@
 
     selectedTicker = ticker;
     chartPeriod = 90;
+    currentItem = item;
+    detailHint = {};
+    detailReturn = currentPageName() === "detail" ? detailReturn : currentPageName();
 
     setText(
       "#detailTitle",
@@ -1834,8 +1887,254 @@
     requestAnimationFrame(drawStockChart);
   }
 
-  // 과거 3년간 같은 신호가 나왔을 때 다음날 시가에 샀다면 (최근 3건)
+  // 전체 종목 페이지용: 가격 이력 샤드 불러오기
+  function shardUrl(ticker, kind) {
+    if (kind === "coin") {
+      return "./data/prices/_coins.json";
+    }
+
+    if (kind === "fund") {
+      return "./data/prices/_funds.json";
+    }
+
+    const letter = String(ticker || "").charAt(0).toUpperCase();
+
+    return `./data/prices/${/[A-Z]/.test(letter) ? letter : "_"}.json`;
+  }
+
+  function columnsToRows(columns) {
+    if (
+      !isObject(columns) ||
+      !Array.isArray(columns.d) ||
+      !Array.isArray(columns.c)
+    ) {
+      return [];
+    }
+
+    return columns.d.map((date, index) => ({
+      date,
+      open: columns.o?.[index],
+      high: columns.h?.[index],
+      low: columns.l?.[index],
+      close: columns.c[index],
+      volume: columns.v?.[index] || 0
+    }));
+  }
+
+  async function ensurePrices(ticker, kind) {
+    if (
+      latestData.price_history?.[ticker] ||
+      extraPrices.has(ticker)
+    ) {
+      return;
+    }
+
+    const url = shardUrl(ticker, kind);
+
+    try {
+      let shard = shardCache.get(url);
+
+      if (!shard) {
+        const response = await fetch(`${url}?t=${Date.now()}`, {
+          cache: "no-store"
+        });
+
+        if (!response.ok) {
+          throw new Error(`가격 파일 HTTP ${response.status}`);
+        }
+
+        shard = await response.json();
+        shardCache.set(url, shard);
+      }
+
+      if (isObject(shard) && shard[ticker]) {
+        extraPrices.set(ticker, columnsToRows(shard[ticker]));
+      }
+    } catch (error) {
+      console.warn("[prices]", ticker, error);
+    }
+  }
+
+  // 신호가 없는 종목(S&P 500·ETF·코인)을 상세 화면에 쓸 수 있게 변환
+  function buildPlainItem(ticker, hint, rows) {
+    const last = rows[rows.length - 1];
+    const rsi = calculateRSI(rows, 14);
+    const high60 = rows
+      .slice(-60)
+      .reduce((maximum, row) => Math.max(maximum, row.high), 0);
+
+    const close = last ? last.close : number(hint.price) || 1;
+
+    return {
+      ticker,
+      name: hint.name || ticker,
+      signal: "",
+      close,
+      drawdown:
+        last && high60 > 0
+          ? Math.min(0, (last.close / high60 - 1) * 100)
+          : 0,
+      rsi14: number(rsi[rsi.length - 1]) ?? 50,
+      date: last ? last.date : "",
+      plain: true
+    };
+  }
+
+  async function openDetailAny(ticker, hint = {}) {
+    const clean = normalizeTicker(ticker);
+
+    if (!clean) {
+      return;
+    }
+
+    if (signals.some(row => row.ticker === clean)) {
+      openDetail(clean);
+      return;
+    }
+
+    await ensurePrices(clean, hint.kind);
+
+    externalMeta[clean] = {
+      company_name: hint.name || clean,
+      sector: hint.sector || "",
+      market_cap: hint.marketCap ?? null,
+      index: hint.index || "",
+      price: hint.price ?? null
+    };
+
+    const item = buildPlainItem(clean, hint, getPriceRows(clean));
+
+    selectedTicker = clean;
+    chartPeriod = 90;
+    currentItem = item;
+    detailHint = hint;
+
+    if (currentPageName() !== "detail") {
+      detailReturn = currentPageName();
+    }
+
+    renderDetail(item);
+    showPage("detail");
+    requestAnimationFrame(drawStockChart);
+  }
+
+  // 실시간 시세 반영 (extra.js가 호출)
+  function applyLiveQuotes(quotes) {
+    let changed = false;
+
+    Object.entries(quotes || {}).forEach(([ticker, quote]) => {
+      const price = number(quote?.price);
+
+      if (price === null || price <= 0) {
+        return;
+      }
+
+      const before = livePrices.get(ticker);
+
+      if (!before || before.price !== price) {
+        changed = true;
+      }
+
+      livePrices.set(ticker, {
+        price,
+        change: number(quote.change),
+        changePct: number(quote.changePct),
+        time: quote.time || null,
+        source: quote.source || ""
+      });
+    });
+
+    if (!changed) {
+      return;
+    }
+
+    const page = currentPageName();
+
+    if (page === "scanner") {
+      renderSignals();
+    }
+
+    if (page === "detail" && currentItem && selectedTicker) {
+      // 화면 전체를 다시 그리면 스크롤이 튀므로 가격 영역만 갱신한다
+      if (!updateDetailPrice()) {
+        renderDetail(currentItem);
+        requestAnimationFrame(drawStockChart);
+      }
+    }
+  }
+
+  function updateDetailPrice() {
+    const element = $("#sdPrice");
+
+    if (!element || !currentItem) {
+      return false;
+    }
+
+    const meta = getCompanyMeta(currentItem);
+    const rows = getPriceRows(currentItem.ticker);
+    const price = meta.price;
+
+    const previousClose =
+      rows.length > 1 ? rows[rows.length - 2].close : null;
+
+    const calculatedChange =
+      price !== null && previousClose !== null
+        ? price - previousClose
+        : null;
+
+    const calculatedPct =
+      calculatedChange !== null && previousClose > 0
+        ? calculatedChange / previousClose * 100
+        : null;
+
+    const change = meta.change !== null ? meta.change : calculatedChange;
+    const changePct = meta.changePct !== null ? meta.changePct : calculatedPct;
+
+    const changeText =
+      change === null && changePct === null
+        ? "등락 데이터 미확인"
+        : [
+            change === null
+              ? ""
+              : `${change > 0 ? "+" : ""}${fmt(change)}`,
+            changePct === null
+              ? ""
+              : `(${signed(changePct)})`
+          ].filter(Boolean).join(" ");
+
+    const changeClass =
+      changePct === null
+        ? "neutral"
+        : changePct < 0
+          ? "negative"
+          : "positive";
+
+    element.innerHTML = `
+      ${safe(price === null ? "—" : `$${fmt(price)}`)}
+      <span class="${changeClass}">${safe(changeText)}</span>`;
+
+    return true;
+  }
+
+  // 화면의 데이터가 새 scan.py로 만들어졌는지 알려주는 진단 문구
+  function scanDiagnosis() {
+    const meta = isObject(latestData.scan_meta) ? latestData.scan_meta : {};
+    const stamp = `데이터 기준 ${latestData.updated_at || "확인 불가"}`;
+
+    if (!meta.version) {
+      return `${stamp} · 이 데이터는 최신 scan.py가 만든 것이 아닙니다. ` +
+        "scripts/scan.py를 교체한 뒤 Actions에서 'Daily Stock Scan'을 수동 실행하고, 끝나면 새로고침하세요.";
+    }
+
+    return `${stamp} · scan.py ${meta.version}`;
+  }
+
+  // 과거 3년간 같은 신호가 나왔을 때 다음날 시가에 샀다면 (최대 20건)
   function renderSignalCases(item) {
+    if (!item.signal) {
+      return "";
+    }
+
     const info = latestData.signal_cases?.[item.ticker];
     const horizons = [3, 5, 10, 20];
 
@@ -1847,7 +2146,13 @@
       return `
         <section class="sd-cases-card">${head}
           <p class="sd-analyst-empty">
-            과거 사례 데이터가 아직 없습니다. 최신 scan.py로 스캔하면 표시됩니다.
+            과거 사례 데이터가 없습니다.
+            ${
+              latestData.scan_meta?.version
+                ? "이번 스캔에서 이 종목의 3년 일봉을 받지 못했거나 사례를 계산하지 못했습니다."
+                : ""
+            }
+            <br><small>${safe(scanDiagnosis())}</small>
           </p>
         </section>`;
     }
@@ -2133,11 +2438,23 @@
 
     const casesMarkup = renderSignalCases(item);
 
-    const analystMarkup = renderAnalystSection(
-      item,
-      meta,
-      price
-    );
+    // 코인·지수·ETF에는 애널리스트 의견이 없고, 신호 없는 일반 종목은 수집 대상이 아니다
+    const analystMarkup = item.plain
+      ? detailHint.kind === "coin" || detailHint.kind === "fund"
+        ? ""
+        : `
+          <section class="sd-analyst-card">
+            <p class="eyebrow">WALL STREET CONSENSUS</p>
+            <h3>애널리스트 투자의견 · 목표가</h3>
+            <p class="sd-analyst-empty">
+              애널리스트 의견은 매수 신호가 발생한 종목에 대해서만 수집합니다.
+            </p>
+          </section>`
+      : renderAnalystSection(
+          item,
+          meta,
+          price
+        );
 
     setHTML("#detailBody", `
       <div class="sd-detail">
@@ -2173,7 +2490,7 @@
 
         <section class="sd-price-row">
           <div>
-            <div class="sd-price">
+            <div class="sd-price" id="sdPrice">
               ${safe(priceText)}
               <span class="${changeClass}">${safe(changeText)}</span>
             </div>
@@ -2184,23 +2501,32 @@
 
           <div class="sd-signal">
             <small>신호</small>
-            <b>${safe(item.signal)}</b>
+            <b>${safe(item.signal || "없음")}</b>
           </div>
         </section>
 
         <section class="sd-chart-card">
           <div class="sd-chart-controls">
-            <div class="sd-periods">
-              <button type="button" data-period="30">1개월</button>
-              <button type="button" data-period="90" class="active">3개월</button>
-              <button type="button" data-period="180">6개월</button>
-              <button type="button" data-period="365">1년</button>
+            <div class="sd-ctrl-left">
+              <div class="sd-periods">
+                ${[[30, "1개월"], [90, "3개월"], [180, "6개월"], [365, "1년"]]
+                  .map(([days, label]) =>
+                    `<button type="button" data-period="${days}" class="${chartPeriod === days ? "active" : ""}">${label}</button>`
+                  ).join("")}
+              </div>
+
+              <label class="sd-switch" title="볼린저밴드·RSI·CCI 표시">
+                <input type="checkbox" id="indicatorToggle" ${indicatorsOn ? "checked" : ""}>
+                <span class="sd-switch-track"></span>
+                <span class="sd-switch-text">지표</span>
+              </label>
             </div>
 
             <div class="sd-legend">
               <span class="ma20-label">■ MA20</span>
               <span class="ma50-label">■ MA50</span>
               <span class="ma200-label">■ MA200</span>
+              ${indicatorsOn ? '<span class="bb-label">■ 볼린저(20,2)</span>' : ""}
             </div>
           </div>
 
@@ -2262,7 +2588,12 @@
     `);
 
     $("#sdBack")?.addEventListener("click", () => {
-      showPage("scanner");
+      showPage(detailReturn || "scanner");
+    });
+
+    $("#indicatorToggle")?.addEventListener("change", event => {
+      indicatorsOn = Boolean(event.target.checked);
+      drawStockChart();
     });
 
     $("#sdFavorite")?.addEventListener("click", () => {
@@ -2296,6 +2627,232 @@
   // =========================================================
   // 11. 상세 캔들 차트
   // =========================================================
+
+  function bollingerBands(rows, period = 20, mult = 2) {
+    const mid = movingAverage(rows, period);
+    const upper = [];
+    const lower = [];
+
+    rows.forEach((row, index) => {
+      const average = mid[index];
+
+      if (average === null || index + 1 < period) {
+        upper.push(null);
+        lower.push(null);
+        return;
+      }
+
+      let sum = 0;
+
+      for (let i = index - period + 1; i <= index; i++) {
+        sum += (rows[i].close - average) ** 2;
+      }
+
+      const deviation = Math.sqrt(sum / period);
+
+      upper.push(average + mult * deviation);
+      lower.push(average - mult * deviation);
+    });
+
+    return { mid, upper, lower };
+  }
+
+  function calculateCCI(rows, period = 20) {
+    const typical = rows.map(row => (row.high + row.low + row.close) / 3);
+
+    return typical.map((value, index) => {
+      if (index + 1 < period) {
+        return null;
+      }
+
+      let sum = 0;
+
+      for (let i = index - period + 1; i <= index; i++) {
+        sum += typical[i];
+      }
+
+      const average = sum / period;
+      let deviation = 0;
+
+      for (let i = index - period + 1; i <= index; i++) {
+        deviation += Math.abs(typical[i] - average);
+      }
+
+      const meanDeviation = deviation / period;
+
+      return meanDeviation === 0
+        ? 0
+        : (value - average) / (0.015 * meanDeviation);
+    });
+  }
+
+  function drawBollinger(ctx, bands) {
+    const { upper, lower, left, step, y } = bands;
+
+    const valid = upper
+      .map((value, index) =>
+        value !== null && lower[index] !== null ? index : -1
+      )
+      .filter(index => index >= 0);
+
+    if (valid.length < 2) {
+      return;
+    }
+
+    ctx.beginPath();
+
+    valid.forEach((index, order) => {
+      const x = left + step * (index + 0.5);
+
+      if (order === 0) {
+        ctx.moveTo(x, y(upper[index]));
+      } else {
+        ctx.lineTo(x, y(upper[index]));
+      }
+    });
+
+    for (let order = valid.length - 1; order >= 0; order--) {
+      const index = valid[order];
+      ctx.lineTo(left + step * (index + 0.5), y(lower[index]));
+    }
+
+    ctx.closePath();
+    ctx.fillStyle = "rgba(36, 94, 234, 0.07)";
+    ctx.fill();
+
+    [upper, lower].forEach(series => {
+      ctx.beginPath();
+      ctx.strokeStyle = "#7f93c4";
+      ctx.lineWidth = 1;
+
+      let started = false;
+
+      series.forEach((value, index) => {
+        if (value === null) {
+          started = false;
+          return;
+        }
+
+        const x = left + step * (index + 0.5);
+
+        if (!started) {
+          ctx.moveTo(x, y(value));
+          started = true;
+        } else {
+          ctx.lineTo(x, y(value));
+        }
+      });
+
+      ctx.stroke();
+    });
+  }
+
+  // 가격 차트와 거래량 사이에 RSI·CCI 패널을 그린다
+  function drawIndicatorPanels(ctx, layout) {
+    const { all, offset, left, right, width, step, top, panelHeight } = layout;
+
+    const panels = [
+      {
+        label: "RSI(14)",
+        series: calculateRSI(all, 14).slice(offset),
+        min: 0,
+        max: 100,
+        levels: [30, 70],
+        color: "#8b5cf6"
+      },
+      {
+        label: "CCI(20)",
+        series: calculateCCI(all, 20).slice(offset),
+        min: -250,
+        max: 250,
+        levels: [-100, 100],
+        color: "#e8590c"
+      }
+    ];
+
+    panels.forEach((panel, index) => {
+      const regionTop = top + panelHeight * index;
+      const plotTop = regionTop + 14;
+      const plotBottom = regionTop + panelHeight - 6;
+
+      const py = value =>
+        plotBottom -
+        (Math.min(Math.max(value, panel.min), panel.max) - panel.min) /
+          (panel.max - panel.min) *
+          (plotBottom - plotTop);
+
+      ctx.strokeStyle = "#d0d5dd";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(left, regionTop + 0.5);
+      ctx.lineTo(width - right, regionTop + 0.5);
+      ctx.stroke();
+
+      panel.levels.forEach(level => {
+        ctx.strokeStyle = "#e4e7ec";
+
+        if (ctx.setLineDash) {
+          ctx.setLineDash([3, 3]);
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(left, py(level));
+        ctx.lineTo(width - right, py(level));
+        ctx.stroke();
+
+        if (ctx.setLineDash) {
+          ctx.setLineDash([]);
+        }
+
+        ctx.fillStyle = "#98a2b3";
+        ctx.font = "9px sans-serif";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(level), width - 2, py(level));
+      });
+
+      ctx.beginPath();
+      ctx.strokeStyle = panel.color;
+      ctx.lineWidth = 1.3;
+      ctx.lineJoin = "round";
+
+      let started = false;
+
+      panel.series.forEach((value, i) => {
+        if (value === null || !Number.isFinite(value)) {
+          started = false;
+          return;
+        }
+
+        const x = left + step * (i + 0.5);
+
+        if (!started) {
+          ctx.moveTo(x, py(value));
+          started = true;
+        } else {
+          ctx.lineTo(x, py(value));
+        }
+      });
+
+      ctx.stroke();
+
+      const lastValue = panel.series[panel.series.length - 1];
+
+      ctx.fillStyle = panel.color;
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(
+        `${panel.label} ${
+          lastValue === null || lastValue === undefined
+            ? "—"
+            : fmt(lastValue, 1)
+        }`,
+        left + 2,
+        regionTop + 3
+      );
+    });
+  }
 
   // 축 눈금용 보조 함수
   function niceStep(rawStep) {
@@ -2363,11 +2920,17 @@
 
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const width = Math.max(280, canvas.clientWidth || 320);
-    const height = 285;
+    // 지표 스위치가 켜지면 RSI·CCI 패널만큼 차트가 길어진다
+    const extraHeight = indicatorsOn ? 124 : 0;
+    const height = 285 + extraHeight;
 
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
     canvas.style.height = `${height}px`;
+
+    if (canvas.parentElement && canvas.parentElement.style) {
+      canvas.parentElement.style.height = `${height}px`;
+    }
 
     const ctx = canvas.getContext("2d");
 
@@ -2396,16 +2959,21 @@
     const right = 43;
     const top = 6;
     const bottom = 20;
-    const separator = height * 0.70;
+    const priceSep = 285 * 0.70;
+    const separator = priceSep + extraHeight;
     const volumeTop = separator + 13;
     const volumeBottom = height - bottom;
     const plotWidth = Math.max(1, width - left - right);
-    const plotHeight = separator - top - 6;
+    const plotHeight = priceSep - top - 6;
     const offset = all.length - rows.length;
 
     const ma20 = movingAverage(all, 20).slice(offset);
     const ma50 = movingAverage(all, 50).slice(offset);
     const ma200 = movingAverage(all, 200).slice(offset);
+
+    const bb = indicatorsOn ? bollingerBands(all, 20, 2) : null;
+    const bbUpper = bb ? bb.upper.slice(offset) : [];
+    const bbLower = bb ? bb.lower.slice(offset) : [];
 
     const prices = [];
 
@@ -2413,7 +2981,7 @@
       prices.push(row.high, row.low);
     });
 
-    [ma20, ma50, ma200].forEach(series => {
+    [ma20, ma50, ma200, bbUpper, bbLower].forEach(series => {
       series.forEach(value => {
         if (value !== null && Number.isFinite(value)) {
           prices.push(value);
@@ -2527,6 +3095,27 @@
     drawMA(ma20, "#356ae6");
     drawMA(ma50, "#e69b27");
     drawMA(ma200, "#8b5cf6");
+
+    if (indicatorsOn) {
+      drawBollinger(ctx, {
+        upper: bbUpper,
+        lower: bbLower,
+        left,
+        step,
+        y
+      });
+
+      drawIndicatorPanels(ctx, {
+        all,
+        offset,
+        left,
+        right,
+        width,
+        step,
+        top: priceSep,
+        panelHeight: 62
+      });
+    }
 
     ctx.strokeStyle = "#d0d5dd";
     ctx.beginPath();
@@ -2921,6 +3510,29 @@
       );
 
       await loadHistory();
+
+      // 전체 종목·13F·트럼프 데이터와 실시간 시세 갱신
+      extraPrices.clear();
+      shardCache.clear();
+
+      await Promise.allSettled(refreshHooks.map(hook => hook()));
+
+      // 열려 있는 상세 화면의 현재가·차트도 다시 그린다
+      if (selectedTicker && currentPageName() === "detail") {
+        const fresh =
+          signals.find(row => row.ticker === selectedTicker) ||
+          currentItem;
+
+        if (fresh) {
+          if (fresh.plain) {
+            await ensurePrices(selectedTicker, detailHint.kind);
+          }
+
+          currentItem = fresh;
+          renderDetail(fresh);
+          requestAnimationFrame(drawStockChart);
+        }
+      }
 
       button.textContent = "✓ 갱신 완료";
 
@@ -3977,10 +4589,111 @@
     document.head.appendChild(style);
   }
 
+  function installChartStyles() {
+    if ($("#chartStyles")) {
+      return;
+    }
+
+    const style = document.createElement("style");
+    style.id = "chartStyles";
+
+    style.textContent = `
+      .tabs {
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      .tabs::-webkit-scrollbar {
+        display: none;
+      }
+
+      .tabs button {
+        flex: 1 0 auto;
+        padding: 9px 13px;
+      }
+
+      .sd-ctrl-left {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+      }
+
+      .sd-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .sd-switch input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+      }
+
+      .sd-switch-track {
+        position: relative;
+        width: 34px;
+        height: 20px;
+        border-radius: 999px;
+        background: #d0d5dd;
+        transition: background .15s ease;
+      }
+
+      .sd-switch-track::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(16,24,40,.3);
+        transition: transform .15s ease;
+      }
+
+      .sd-switch input:checked + .sd-switch-track {
+        background: #245eea;
+      }
+
+      .sd-switch input:checked + .sd-switch-track::after {
+        transform: translateX(14px);
+      }
+
+      .sd-switch input:focus-visible + .sd-switch-track {
+        outline: 2px solid #245eea;
+        outline-offset: 2px;
+      }
+
+      .sd-switch-text {
+        color: #475467;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .bb-label {
+        color: #7f93c4;
+      }
+
+      .sd-analyst-window {
+        margin: 2px 0 10px;
+        color: #7b8794;
+        font-size: 11px;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
   function initialize() {
     readFavorites();
     installExtraStyles();
     installRedesignStyles();
+    installChartStyles();
     enhanceScannerToolbar();
 
     $$(".tabs [data-page]").forEach(button => {
@@ -4024,6 +4737,29 @@
     showPage("macro");
     refreshData();
   }
+
+  window.HyeonuApp = {
+    $,
+    $$,
+    safe,
+    fmt,
+    signed,
+    number,
+    moneyCap,
+    validDate,
+    isObject,
+    safeArray,
+    sectorGroupLabel,
+    showPage,
+    openDetailAny,
+    applyLiveQuotes,
+    getLatest: () => latestData,
+    getSignals: () => signals,
+    getCurrentPage: () => currentPageName(),
+    getSelectedTicker: () => selectedTicker,
+    onPage: hook => pageHooks.push(hook),
+    onRefresh: hook => refreshHooks.push(hook)
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initialize, {
