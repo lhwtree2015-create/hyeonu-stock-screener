@@ -1,0 +1,44 @@
+name: Weekly Filings (13F, OGE)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 10 * * 1'   # 매주 월요일 10:00 UTC
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-updates
+  cancel-in-progress: false
+
+jobs:
+  filings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt lxml pdfplumber
+      - name: SEC 13F
+        continue-on-error: true
+        env:
+          # 저장소 Settings > Secrets and variables > Actions > Variables 에
+          # SEC_USER_AGENT = "이름 이메일주소" 형식으로 등록하면 SEC 요청에 사용됩니다.
+          SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
+        run: python scripts/fetch_13f.py
+      - name: OGE 278-T (Trump)
+        continue-on-error: true
+        run: python scripts/fetch_oge.py
+      - name: Save results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data
+          if ! git diff --cached --quiet; then
+            git commit -m "Update filings data"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push
+          fi
