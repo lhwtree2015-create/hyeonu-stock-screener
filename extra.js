@@ -39,6 +39,19 @@
     }
   }
 
+  // 수집 실행 결과(상태 파일)를 사람이 읽을 수 있는 문장으로 바꾼다
+  function collectStatusText(status, scriptName) {
+    if (isObject(status) && status.ok === false) {
+      return `마지막 수집(${status.at || "시각 미확인"})이 실패했습니다: ${status.error || "원인 미확인"}`;
+    }
+
+    if (isObject(status) && status.ok === true) {
+      return `마지막 수집(${status.at || "시각 미확인"})은 성공했지만 표시할 데이터가 없습니다.`;
+    }
+
+    return `수집이 한 번도 실행되지 않았습니다. Actions에 'Weekly Filings (13F, OGE)'가 있는지, ${scriptName}가 scripts 폴더에 올라가 있는지 확인한 뒤 실행해 주세요.`;
+  }
+
   async function fetchJson(path) {
     try {
       const response = await fetchTimeout(
@@ -787,6 +800,7 @@
   async function loadFilings() {
     const json = await fetchJson("./data/13f.json");
 
+    F.status = json ? null : await fetchJson("./data/13f_status.json");
     F.loaded = true;
     F.data = isObject(json) && Array.isArray(json.institutions)
       ? json.institutions.filter(item => isObject(item) && Array.isArray(item.quarters) && item.quarters.length)
@@ -886,7 +900,7 @@
     }
 
     if (!F.data || !F.data.length) {
-      body.innerHTML = '<div class="panel">13F 데이터가 아직 없습니다. Actions에서 \'Weekly Filings\'를 한 번 실행해 주세요.</div>';
+      body.innerHTML = `<div class="panel">13F 데이터가 없습니다. ${safe(collectStatusText(F.status, "scripts/fetch_13f.py"))}</div>`;
       return;
     }
 
@@ -1110,6 +1124,7 @@
   async function loadTrump() {
     const json = await fetchJson("./data/trump.json");
 
+    T.status = json ? null : await fetchJson("./data/trump_status.json");
     T.loaded = true;
     T.data = isObject(json) ? json : null;
   }
@@ -1200,7 +1215,7 @@
       ${list(sells, T.sellAll, "sell", "최근 매도 내역")}
 
       <p class="x-note">${safe(data.meta?.note || "")} 공시는 거래 후 최대 45일 뒤에 제출되어 실제 거래 시점과 차이가 있습니다. 투자 조언이 아닙니다.</p>
-      ` : `<div class="panel">${T.loaded ? "트럼프 공시 데이터가 아직 없습니다. Actions에서 'Weekly Filings'를 한 번 실행해 주세요." : "불러오는 중…"}</div>`}`;
+      ` : `<div class="panel">${T.loaded ? safe("트럼프 공시 데이터가 없습니다. " + collectStatusText(T.status, "scripts/fetch_oge.py")) : "불러오는 중…"}</div>`}`;
   }
 
   function buildTrump() {
