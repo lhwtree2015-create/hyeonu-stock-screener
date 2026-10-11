@@ -756,11 +756,6 @@
       );
     });
 
-    $(".tabs [data-page].active")?.scrollIntoView?.({
-      inline: "center",
-      block: "nearest"
-    });
-
     pageHooks.forEach(hook => {
       try {
         hook(name);
@@ -4146,6 +4141,27 @@
     return $(".tabs [data-page].active")?.dataset.page || "macro";
   }
 
+  // 터치한 곳이 좌우로 스크롤되는 영역 안인지 확인
+  function inHorizontalScroller(node) {
+    let element = node;
+
+    while (element && element.nodeType === 1) {
+      if (element.scrollWidth > element.clientWidth + 2) {
+        const overflowX = window.getComputedStyle
+          ? window.getComputedStyle(element).overflowX
+          : "";
+
+        if (overflowX === "auto" || overflowX === "scroll") {
+          return true;
+        }
+      }
+
+      element = element.parentElement;
+    }
+
+    return false;
+  }
+
   function installSwipeNavigation() {
     const area = $("main");
 
@@ -4178,6 +4194,11 @@
         return;
       }
 
+      // 기관·종목 탭처럼 좌우로 스크롤되는 영역에서 시작한 터치도 제외
+      if (inHorizontalScroller(target)) {
+        return;
+      }
+
       const touch = event.touches[0];
 
       startX = touch.clientX;
@@ -4202,9 +4223,10 @@
       const dx = touch.clientX - startX;
       const dy = touch.clientY - startY;
 
+      // 길고 확실한 가로 스와이프만 페이지 이동으로 인정
       if (
-        Math.abs(dx) < 70 ||
-        Math.abs(dx) < Math.abs(dy) * 1.5
+        Math.abs(dx) < 110 ||
+        Math.abs(dx) < Math.abs(dy) * 2.5
       ) {
         return;
       }
@@ -4599,17 +4621,15 @@
 
     style.textContent = `
       .tabs {
-        overflow-x: auto;
-        scrollbar-width: none;
-      }
-
-      .tabs::-webkit-scrollbar {
-        display: none;
+        overflow: visible;
       }
 
       .tabs button {
-        flex: 1 0 auto;
-        padding: 9px 13px;
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 9px 0;
+        font-size: 12px;
+        letter-spacing: -.02em;
       }
 
       .sd-ctrl-left {

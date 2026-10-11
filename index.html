@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f2f4f9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="혀누">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="manifest" href="manifest.webmanifest">
 <title>혀누 주식 스크리너</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +20,7 @@
 <body>
 <header class="top">
   <div class="brand">
-    <div class="brand-logo" aria-hidden="true">혀</div>
+    <img class="brand-logo" src="icon-192.png" alt="" style="background:none;object-fit:cover">
     <div>
       <h1>혀누 주식 스크리너</h1>
       <span id="updated" class="muted">데이터 확인 중</span>
@@ -23,13 +30,13 @@
   <button type="button" id="refreshData" class="refresh-button" aria-label="데이터 새로고침">↻ 새로고침</button>
 </header>
 <nav class="tabs">
-  <button type="button" class="tab active" data-page="macro">시장 요약</button>
-  <button type="button" class="tab" data-page="scanner">신호 스캐너</button>
-  <button type="button" class="tab" data-page="detail">종목 상세</button>
-  <button type="button" class="tab" data-page="history">이력·성과</button>
-  <button type="button" class="tab" data-page="universe">전체 종목</button>
-  <button type="button" class="tab" data-page="filings">13F 기관</button>
-  <button type="button" class="tab" data-page="trump">트럼프 따라가기</button>
+  <button type="button" class="tab active" data-page="macro" aria-label="시장 요약">시장</button>
+  <button type="button" class="tab" data-page="scanner" aria-label="신호 스캐너">스캐너</button>
+  <button type="button" class="tab" data-page="detail" aria-label="종목 상세">상세</button>
+  <button type="button" class="tab" data-page="history" aria-label="이력·성과">이력</button>
+  <button type="button" class="tab" data-page="universe" aria-label="전체 종목">전체</button>
+  <button type="button" class="tab" data-page="filings" aria-label="13F 기관">13F</button>
+  <button type="button" class="tab" data-page="trump" aria-label="트럼프 따라가기">트럼프</button>
 </nav>
 <main>
 <section class="page active" id="page-macro">
