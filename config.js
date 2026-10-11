@@ -9,7 +9,7 @@
 // 암호화폐는 키 없이 CoinGecko에서 가져옵니다.
 // 주의: 이 파일은 공개 저장소에 올라가므로, 읽기 전용 무료 키만 사용하세요.
 window.HYEONU_CONFIG = {
-  finnhubKey: "",
+  finnhubKey: "db5s9ppr01qmd5lfbbhgdb5s9ppr01qmd5lfbbi0",
   quoteProxy: "",
   pollSeconds: 15
 };
