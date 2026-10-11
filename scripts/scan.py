@@ -1,8 +1,9 @@
 import json
 import os
+import re
 import time
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 import pandas as pd
@@ -40,6 +41,8 @@ MACRO_SYMBOLS = {
 # 공포·탐욕지수: 주식(CNN)은 공식 API가 없어 비트코인 공포·탐욕지수(alternative.me)를 사용한다.
 FEAR_GREED_NAME = "비트코인 공포지수"
 MACRO_TOTAL = len(MACRO_SYMBOLS) + 1
+# 화면의 진단 문구용 (데이터가 새 scan.py로 만들어졌는지 확인)
+SCAN_VERSION = "2026-10-11.1"
 def read_json(path, default):
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -383,11 +386,11 @@ def _classify_signal(drawdown, rsi, band):
     if rsi <= 42 and band <= 0.25:
         return "단기조정"
     return None
-def past_signal_cases(df, signal, horizons=(3, 5, 10, 20), limit=3):
+def past_signal_cases(df, signal, horizons=(3, 5, 10, 20), limit=20):
     """같은 신호가 과거(약 3년)에 발생했을 때 다음 거래일 시가에 매수했다면?
 
     연속으로 이어진 신호일은 한 번의 사례(첫 날)로 묶고,
-    현재 진행 중인 신호는 제외한 최근 limit건을 돌려준다.
+    현재 진행 중인 신호는 제외한 최근 limit건(최대 20건)을 돌려준다.
     """
     if df is None or len(df) < 61:
         return None
@@ -507,71 +510,104 @@ def get_company_info(tickers, old_info):
         if entry:
             info_map[ticker] = entry
     return info_map
+_BUY_RATINGS = {
+    "buy", "strong buy", "outperform", "overweight", "positive",
+    "market outperform", "sector outperform", "accumulate", "add",
+    "long term buy", "top pick", "conviction buy", "moderate buy",
+    "speculative buy", "trading buy", "recommended list",
+}
+_HOLD_RATINGS = {
+    "hold", "neutral", "market perform", "equal weight", "equalweight",
+    "sector perform", "in line", "peer perform", "perform",
+    "sector weight", "mixed", "fair value",
+}
+_SELL_RATINGS = {
+    "sell", "strong sell", "underperform", "underweight", "reduce",
+    "negative", "market underperform", "sector underperform",
+}
+def _rating_bucket(grade):
+    """증권사 등급 문구를 buy / hold / sell 중 하나로 분류한다. 모르면 None."""
+    if not isinstance(grade, str):
+        return None
+    text = re.sub(r"\s+", " ", re.sub(r"[-_/]", " ", grade.lower())).strip()
+    if text in _BUY_RATINGS:
+        return "buy"
+    if text in _HOLD_RATINGS:
+        return "hold"
+    if text in _SELL_RATINGS:
+        return "sell"
+    return None
+def _yahoo_consensus(stock, info):
+    """증권사별 1년 이내 기록이 없을 때만 쓰는 야후 컨센서스(대체 수단)."""
+    summary = {}
+    try:
+        recs = stock.recommendations_summary
+        if recs is not None and not recs.empty:
+            row = recs.iloc[0]
+            for key in ("strongBuy", "buy", "hold", "sell", "strongSell"):
+                if key in recs.columns:
+                    value = to_number(row[key])
+                    if value is not None:
+                        summary[key] = int(value)
+    except Exception as exc:
+        print(f"투자의견 요약 조회 실패: {exc}")
+    try:
+        targets = stock.analyst_price_targets
+        if isinstance(targets, dict):
+            for key, source in (
+                ("targetMean", "mean"), ("targetLow", "low"),
+                ("targetHigh", "high"),
+            ):
+                value = to_number(targets.get(source))
+                if value is not None and value > 0:
+                    summary[key] = round(value, 2)
+    except Exception as exc:
+        print(f"목표가 조회 실패: {exc}")
+    count = to_number(info.get("numberOfAnalystOpinions"))
+    if count is not None and count > 0:
+        summary["numberAnalysts"] = int(count)
+    for key, source in (
+        ("targetMean", "targetMeanPrice"), ("targetLow", "targetLowPrice"),
+        ("targetHigh", "targetHighPrice"),
+    ):
+        if key not in summary:
+            value = to_number(info.get(source))
+            if value is not None and value > 0:
+                summary[key] = round(value, 2)
+    return summary
 def get_analyst_info(tickers, old_info):
-    """신호가 발생한 종목의 애널리스트 의견·목표가·증권사별 의견을 조회한다.
+    """신호가 발생한 종목의 애널리스트 의견을 '현재 날짜 기준 최근 1년 이내'만 종합한다.
 
-    표시용 정보이며 신호 계산에는 영향을 주지 않는다.
-    조회에 실패하거나 데이터가 없으면 이전에 저장된 값을 그대로 유지한다.
+    증권사마다 1년 이내 가장 최근 의견 1건만 사용해 Buy/Hold/Sell 인원과
+    평균·최저·최고 목표가를 직접 계산한다. 표시용 정보이며 신호 계산에는 영향이 없다.
+    조회에 실패하면 이전에 저장된 값을 그대로 유지한다.
     """
     result = {}
     if isinstance(old_info, dict):
         for ticker, value in old_info.items():
             if isinstance(value, dict):
                 result[ticker] = value
-    today = datetime.now(KST).date().isoformat()
+    today_date = datetime.now(KST).date()
+    today = today_date.isoformat()
+    cutoff = (today_date - timedelta(days=365)).isoformat()
     stats = {"attempted": 0, "ok": 0, "failed": []}
     for ticker in tickers:
         stats["attempted"] += 1
         time.sleep(0.3)
         stock = yf.Ticker(ticker)
-        summary = {}
         brokers = []
-        # 1) Buy / Hold / Sell 인원 수 (가장 최근 월)
-        try:
-            recs = stock.recommendations_summary
-            if recs is not None and not recs.empty:
-                row = recs.iloc[0]
-                for key in ("strongBuy", "buy", "hold", "sell", "strongSell"):
-                    if key in recs.columns:
-                        value = to_number(row[key])
-                        if value is not None:
-                            summary[key] = int(value)
-        except Exception as exc:
-            print(f"투자의견 요약 조회 실패 {ticker}: {exc}")
-        # 2) 목표가
-        try:
-            targets = stock.analyst_price_targets
-            if isinstance(targets, dict):
-                for key, source in (
-                    ("targetMean", "mean"),
-                    ("targetLow", "low"),
-                    ("targetHigh", "high"),
-                ):
-                    value = to_number(targets.get(source))
-                    if value is not None and value > 0:
-                        summary[key] = round(value, 2)
-        except Exception as exc:
-            print(f"목표가 조회 실패 {ticker}: {exc}")
-        info = fetch_info(ticker)
-        count = to_number(info.get("numberOfAnalystOpinions"))
-        if count is not None and count > 0:
-            summary["numberAnalysts"] = int(count)
-        for key, source in (
-            ("targetMean", "targetMeanPrice"),
-            ("targetLow", "targetLowPrice"),
-            ("targetHigh", "targetHighPrice"),
-        ):
-            if key not in summary:
-                value = to_number(info.get(source))
-                if value is not None and value > 0:
-                    summary[key] = round(value, 2)
-        # 3) 증권사별 최신 의견 (증권사마다 가장 최근 1건, 최대 30곳)
         try:
             changes = stock.upgrades_downgrades
             if changes is not None and not changes.empty:
                 changes = changes.sort_index(ascending=False)
                 seen = set()
                 for date, row in changes.iterrows():
+                    date_iso = (
+                        date.date().isoformat()
+                        if hasattr(date, "date") else str(date)[:10]
+                    )
+                    if date_iso < cutoff:
+                        break
                     firm = row.get("Firm")
                     if not isinstance(firm, str) or not firm.strip():
                         continue
@@ -585,26 +621,44 @@ def get_analyst_info(tickers, old_info):
                         if isinstance(rating, str) and rating.strip()
                         else "의견 미확인"
                     )
-                    entry = {
-                        "firm": firm,
-                        "rating": rating,
-                        "date": (
-                            date.date().isoformat()
-                            if hasattr(date, "date")
-                            else str(date)[:10]
-                        ),
-                    }
+                    entry = {"firm": firm, "rating": rating, "date": date_iso}
+                    action = row.get("Action")
+                    if isinstance(action, str) and action.strip():
+                        entry["action"] = action.strip()
                     target = to_number(row.get("currentPriceTarget"))
                     if target is not None and target > 0:
                         entry["target_price"] = round(target, 2)
                     brokers.append(entry)
-                    if len(brokers) >= 30:
+                    if len(brokers) >= 60:
                         break
         except Exception as exc:
             print(f"증권사별 의견 조회 실패 {ticker}: {exc}")
+        summary = {}
+        source = "upgrades_downgrades"
+        counts = {"buy": 0, "hold": 0, "sell": 0}
+        targets = []
+        for entry in brokers:
+            bucket = _rating_bucket(entry["rating"])
+            if bucket:
+                counts[bucket] += 1
+            if entry.get("target_price"):
+                targets.append(entry["target_price"])
+        if sum(counts.values()) > 0:
+            summary.update(counts)
+        if targets:
+            summary["targetMean"] = round(sum(targets) / len(targets), 2)
+            summary["targetLow"] = min(targets)
+            summary["targetHigh"] = max(targets)
+        if brokers:
+            summary["numberAnalysts"] = len(brokers)
+        if not summary:
+            summary = _yahoo_consensus(stock, fetch_info(ticker))
+            source = "yahoo_consensus"
         if summary or brokers:
             result[ticker] = {
                 "updated_at": today,
+                "window_days": 365,
+                "source": source,
                 "summary": summary,
                 "brokers": brokers,
             }
@@ -686,6 +740,11 @@ def main():
             "symbols_attempted": len(tickers),
             "symbols_failed": failures,
             "analyst": analyst_stats,
+            "version": SCAN_VERSION,
+            "cases": {
+                "attempted": len(signals),
+                "ok": len(signal_cases),
+            },
             "warning": (
                 ""
                 if is_full_nasdaq100
