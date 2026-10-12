@@ -42,7 +42,7 @@ MACRO_SYMBOLS = {
 FEAR_GREED_NAME = "비트코인 공포지수"
 MACRO_TOTAL = len(MACRO_SYMBOLS) + 1
 # 화면의 진단 문구용 (데이터가 새 scan.py로 만들어졌는지 확인)
-SCAN_VERSION = "2026-10-11.1"
+SCAN_VERSION = "2026-10-12.1"
 def read_json(path, default):
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -91,13 +91,13 @@ def get_tickers():
         print(f"종목 목록 조회 실패: {exc}")
     print("주의: 대체 종목 목록을 사용합니다.")
     return FALLBACK_TICKERS, False
-def download(symbol, period="1y"):
+def download(symbol, period="1y", auto_adjust=False):
     try:
         df = yf.download(
             symbol,
             period=period,
             interval="1d",
-            auto_adjust=True,
+            auto_adjust=auto_adjust,
             progress=False,
             threads=False
         )
@@ -284,148 +284,217 @@ def get_macro(old_data):
         "reason": reason,
         "values": values
     }, histories
-def calculate_signal(df):
-    if df is None or len(df) < 60:
-        return None
-    close = df["Close"].astype(float)
-    ma20 = close.rolling(20).mean()
-    ma50 = close.rolling(50).mean()
-    ma200 = close.rolling(200).mean()
-    std20 = close.rolling(20).std(ddof=0)
-    upper = ma20 + 2 * std20
-    lower = ma20 - 2 * std20
-    band_width = (upper - lower).replace(0, float("nan"))
-    percent_b = (close - lower) / band_width
-    delta = close.diff()
-    gain = delta.clip(lower=0).rolling(14).mean()
-    loss = (-delta.clip(upper=0)).rolling(14).mean()
-    rs = gain / loss.replace(0, float("nan"))
-    rsi = 100 - 100 / (1 + rs)
-    # 0으로 나누는 경우 RSI 계산을 안정적으로 처리
-    rsi = rsi.mask((loss == 0) & (gain > 0), 100)
-    rsi = rsi.mask((loss == 0) & (gain == 0), 50)
-    high60 = close.rolling(60).max()
-    drawdown = close / high60 - 1
-    i = len(df) - 1
-    if any(pd.isna(series.iloc[i]) for series in (
-        ma20, ma50, percent_b, rsi, drawdown
-    )):
-        return None
-    current_rsi = float(rsi.iloc[i])
-    current_band = float(percent_b.iloc[i])
-    current_drawdown = float(drawdown.iloc[i])
-    signal = None
+# =====================================================
+# 웅덩이매매법 V12 (TradingView Pine 전략을 그대로 옮긴 신호 엔진)
+# 4단계: 웅줍 < 강웅줍 < 급락웅줍 < 급락웅줍+
+# =====================================================
+TIERS = ["웅줍", "강웅줍", "급락웅줍", "급락웅줍+"]
+V12 = {
+    "normal_rsi": 42.0, "strong_rsi": 35.0, "crash_rsi": 33.0, "extreme_rsi": 28.0,
+    "normal_bb": 0.25, "strong_bb": 0.20, "crash_bb": 0.15, "extreme_bb": -0.05,
+    "near_ma20": 2.0, "near_ma50": 3.0, "near_ma100": 4.0, "near_ma200": 5.0,
+    "dd_lookback": 60, "panic_drop": 14.0, "panic_rsi": 42.0, "panic_bb": 0.15,
+    "normal_cooldown": 12, "add_drop": 4.0,
+}
+def drop_unconfirmed(df, now_et=None):
+    """장중에 실행되면 아직 마감되지 않은 오늘 봉을 제외한다 (확정 봉 기준)."""
+    if df is None or df.empty:
+        return df
+    now_et = now_et or datetime.now(ET)
+    minutes = now_et.hour * 60 + now_et.minute
     if (
-        current_drawdown <= -0.23
-        and current_rsi <= 28
-        and current_band <= -0.05
+        now_et.weekday() < 5
+        and df.index[-1].date() == now_et.date()
+        and 9 * 60 + 30 <= minutes < 16 * 60 + 5
     ):
-        signal = "패닉셀"
-    elif (
-        current_drawdown <= -0.17
-        and current_rsi <= 33
-        and current_band <= 0.15
-    ):
-        signal = "급락"
-    elif current_rsi <= 35 and current_band <= 0.20:
-        signal = "조정"
-    elif current_rsi <= 42 and current_band <= 0.25:
-        signal = "단기조정"
-    if signal is None:
-        return None
-    volume20 = df["Volume"].rolling(20).mean().iloc[i]
-    volume = df["Volume"].iloc[i]
-    return {
-        "signal": signal,
-        "date": df.index[i].date().isoformat(),
-        "close": round(float(close.iloc[i]), 2),
-        "rsi14": round(current_rsi, 2),
-        "drawdown": round(current_drawdown * 100, 2),
-        "drawdown60_pct": round(current_drawdown * 100, 2),
-        "percent_b": round(current_band, 3),
-        "ma20": round(float(ma20.iloc[i]), 2),
-        "ma50": round(float(ma50.iloc[i]), 2),
-        "ma200": (
-            round(float(ma200.iloc[i]), 2)
-            if not pd.isna(ma200.iloc[i]) else None
-        ),
-        "volume": 0 if pd.isna(volume) else int(volume),
-        "avg_volume20": (
-            round(float(volume20), 0)
-            if not pd.isna(volume20) else None
-        )
-    }
-def _indicator_series(df):
-    """calculate_signal과 같은 지표 계산 (모든 날짜에 대해)."""
+        return df.iloc[:-1]
+    return df
+def wilder_rsi(close, length=14):
+    """Pine ta.rsi와 같은 Wilder(RMA) 방식 RSI."""
+    values = [float(x) for x in close]
+    n = len(values)
+    out = [float("nan")] * n
+    if n <= length:
+        return out
+    up = [0.0] * n
+    down = [0.0] * n
+    for i in range(1, n):
+        delta = values[i] - values[i - 1]
+        up[i] = delta if delta > 0 else 0.0
+        down[i] = -delta if delta < 0 else 0.0
+    avg_up = sum(up[1:length + 1]) / length
+    avg_down = sum(down[1:length + 1]) / length
+    def rsi_value(a, b):
+        if b == 0:
+            return 100.0
+        if a == 0:
+            return 0.0
+        return 100 - 100 / (1 + a / b)
+    out[length] = rsi_value(avg_up, avg_down)
+    for i in range(length + 1, n):
+        avg_up = (avg_up * (length - 1) + up[i]) / length
+        avg_down = (avg_down * (length - 1) + down[i]) / length
+        out[i] = rsi_value(avg_up, avg_down)
+    return out
+def run_v12(df, cfg=V12):
+    """모든 봉에 대해 V12 매수 신호를 계산한다 (Pine과 같은 상태 변수 사용)."""
+    n = len(df)
     close = df["Close"].astype(float)
-    ma20 = close.rolling(20).mean()
-    ma50 = close.rolling(50).mean()
-    std20 = close.rolling(20).std(ddof=0)
-    upper = ma20 + 2 * std20
-    lower = ma20 - 2 * std20
-    band_width = (upper - lower).replace(0, float("nan"))
-    percent_b = (close - lower) / band_width
-    delta = close.diff()
-    gain = delta.clip(lower=0).rolling(14).mean()
-    loss = (-delta.clip(upper=0)).rolling(14).mean()
-    rs = gain / loss.replace(0, float("nan"))
-    rsi = 100 - 100 / (1 + rs)
-    rsi = rsi.mask((loss == 0) & (gain > 0), 100)
-    rsi = rsi.mask((loss == 0) & (gain == 0), 50)
-    high60 = close.rolling(60).max()
-    drawdown = close / high60 - 1
-    return ma20, ma50, percent_b, rsi, drawdown
-def _classify_signal(drawdown, rsi, band):
-    """calculate_signal과 같은 신호 구분 조건."""
-    if drawdown <= -0.23 and rsi <= 28 and band <= -0.05:
-        return "패닉셀"
-    if drawdown <= -0.17 and rsi <= 33 and band <= 0.15:
-        return "급락"
-    if rsi <= 35 and band <= 0.20:
-        return "조정"
-    if rsi <= 42 and band <= 0.25:
-        return "단기조정"
-    return None
-def past_signal_cases(df, signal, horizons=(3, 5, 10, 20), limit=20):
-    """같은 신호가 과거(약 3년)에 발생했을 때 다음 거래일 시가에 매수했다면?
-
-    연속으로 이어진 신호일은 한 번의 사례(첫 날)로 묶고,
-    현재 진행 중인 신호는 제외한 최근 limit건(최대 20건)을 돌려준다.
-    """
+    high = df["High"].astype(float).to_numpy()
+    low = df["Low"].astype(float).to_numpy()
+    c = close.to_numpy()
+    ma = {k: close.rolling(k).mean().to_numpy() for k in (10, 20, 50, 100, 200)}
+    sd = close.rolling(20).std(ddof=0).to_numpy()
+    peak = close.rolling(cfg["dd_lookback"]).max().to_numpy()
+    rsi = wilder_rsi(c)
+    nan = float("nan")
+    res = {k: [None] * n for k in ("labels", "extra")}
+    res.update({"rsi": rsi, "pctb": [nan] * n, "dd": [0.0] * n, "score": [0] * n, "ma": ma})
+    last_normal = None
+    last_strong = None
+    last_extreme = None
+    armed = False
+    was_below10 = False
+    prev_normal_raw = False
+    for i in range(n):
+        ci, hi_, li = c[i], high[i], low[i]
+        below = ci < ma[20][i]
+        width = 4 * sd[i]
+        if width != width or width == 0:        # NaN 또는 0이면 Pine처럼 0.5
+            pctb, low_pctb = 0.5, 0.5
+        else:
+            lower = ma[20][i] - 2 * sd[i]
+            pctb = (ci - lower) / width
+            low_pctb = (li - lower) / width
+        score = 0
+        for k, key, tol in ((20, "near_ma20", 1), (50, "near_ma50", 2), (100, "near_ma100", 3), (200, "near_ma200", 4)):
+            m = ma[k][i]
+            if m == m and abs(ci - m) / m * 100 <= cfg[key]:
+                score = tol
+                break
+        p = peak[i]
+        dd = (p - ci) / p * 100 if p == p and p > 0 else 0.0
+        low_dd = (p - li) / p * 100 if p == p and p > 0 else 0.0
+        rebound = (ci - li) / li * 100 if li > 0 else 0.0
+        r = rsi[i]
+        res["pctb"][i], res["dd"][i], res["score"][i] = pctb, dd, score
+        panic = low_dd >= cfg["panic_drop"] and low_pctb <= cfg["panic_bb"] and r <= cfg["panic_rsi"] and below and rebound >= 0.5
+        classic = dd >= 17 and r <= cfg["crash_rsi"] and pctb <= cfg["crash_bb"] and below
+        normal_raw = below and score >= 1 and r <= cfg["normal_rsi"] and pctb <= cfg["normal_bb"]
+        strong_raw = below and score >= 1 and r <= cfg["strong_rsi"] and pctb <= cfg["strong_bb"]
+        crash_raw = classic or panic
+        extreme_raw = dd >= 23 and r <= cfg["extreme_rsi"] and pctb <= cfg["extreme_bb"] and below
+        # 웅줍: 첫 신호 + 최소 12봉 간격
+        normal_entry = normal_raw and not prev_normal_raw and (last_normal is None or i - last_normal >= cfg["normal_cooldown"])
+        if normal_entry:
+            last_normal = i
+        # 강웅줍: 첫 신호, 이후 직전 신호가 대비 4% 추가 하락
+        factor = 1 - cfg["add_drop"] / 100
+        strong_first = strong_raw and last_strong is None
+        strong_add = strong_raw and last_strong is not None and ci <= last_strong * factor
+        strong_entry = strong_first or strong_add
+        if strong_entry:
+            last_strong = ci
+        if ci > ma[20][i]:
+            last_strong = None
+        # 급락웅줍: 첫 신호, 이후 MA10 아래로 내려갔다가 MA10 상향 돌파하면 재신호
+        crash_first = crash_raw and not armed
+        if armed and ci < ma[10][i]:
+            was_below10 = True
+        cross = i > 0 and ci > ma[10][i] and c[i - 1] <= ma[10][i - 1]
+        crash_add = armed and was_below10 and cross
+        crash_entry = crash_first or crash_add
+        if crash_first:
+            armed, was_below10 = True, False
+        if crash_add:
+            was_below10 = False
+        if ci > ma[20][i] and r > 50:
+            armed, was_below10 = False, False
+        # 급락웅줍+
+        ext_first = extreme_raw and last_extreme is None
+        ext_add = extreme_raw and last_extreme is not None and ci <= last_extreme * factor
+        extreme_entry = ext_first or ext_add
+        if extreme_entry:
+            last_extreme = ci
+        if ci > ma[20][i] and r > 50:
+            last_extreme = None
+        prev_normal_raw = normal_raw
+        fired = [t for t, f in zip(TIERS, (normal_entry, strong_entry, crash_entry, extreme_entry)) if f]
+        res["labels"][i] = fired[-1] if fired else None
+        res["extra"][i] = {
+            "fired": fired, "panic_only": bool(panic and not classic),
+            "classic": bool(classic), "crash_first": bool(crash_first),
+            "strong_add": bool(strong_add), "crash_add": bool(crash_add), "extreme_add": bool(ext_add),
+            "low_dd": low_dd,
+        }
+    return res
+def _reasons(res, i, label):
+    """신호가 발동한 이유(조건 값)를 사람이 읽을 문장으로 만든다."""
+    cfg = V12
+    r, b, dd, ex = res["rsi"][i], res["pctb"][i], res["dd"][i], res["extra"][i]
+    out = []
+    if label == "웅줍":
+        out += [f"RSI {r:.1f} ≤ {cfg['normal_rsi']:.0f}", f"BB %B {b:.2f} ≤ {cfg['normal_bb']}"]
+    elif label == "강웅줍":
+        out += [f"RSI {r:.1f} ≤ {cfg['strong_rsi']:.0f}", f"BB %B {b:.2f} ≤ {cfg['strong_bb']}"]
+        if ex["strong_add"]:
+            out.append("직전 신호가 대비 4% 추가 하락")
+    elif label == "급락웅줍":
+        if ex["crash_first"] and ex["classic"]:
+            out += [f"60일 고점 대비 -{dd:.1f}% (≥17%)", f"RSI {r:.1f} ≤ {cfg['crash_rsi']:.0f}", f"BB %B {b:.2f} ≤ {cfg['crash_bb']}"]
+        elif ex["crash_first"]:
+            out += [f"패닉 저점: 저가 낙폭 {ex['low_dd']:.1f}% ≥ {cfg['panic_drop']:.0f}%", f"RSI {r:.1f} ≤ {cfg['panic_rsi']:.0f}"]
+        elif ex["crash_add"]:
+            out.append("첫 급락웅줍 이후 MA10 아래로 내려갔다가 MA10 상향 돌파(재신호)")
+    elif label == "급락웅줍+":
+        out += [f"60일 고점 대비 -{dd:.1f}% (≥23%)", f"RSI {r:.1f} ≤ {cfg['extreme_rsi']:.0f}", f"BB %B {b:.2f} ≤ {cfg['extreme_bb']}"]
+        if ex["extreme_add"]:
+            out.append("직전 신호가 대비 4% 추가 하락")
+    if label in ("웅줍", "강웅줍"):
+        names = {1: "MA20", 2: "MA50", 3: "MA100", 4: "MA200"}
+        out.append(f"{names.get(res['score'][i], 'MA')} 근접")
+    return out
+def latest_signal(df, res):
+    """마지막(확정) 봉에서 V12 매수 신호가 발동했다면 화면용 딕셔너리를 돌려준다."""
     if df is None or len(df) < 61:
         return None
-    ma20, ma50, percent_b, rsi, drawdown = _indicator_series(df)
-    labels = []
-    for i in range(len(df)):
-        values = (
-            ma20.iloc[i], ma50.iloc[i], percent_b.iloc[i],
-            rsi.iloc[i], drawdown.iloc[i]
-        )
-        if i + 1 < 60 or any(pd.isna(value) for value in values):
-            labels.append(None)
-            continue
-        labels.append(_classify_signal(
-            float(drawdown.iloc[i]), float(rsi.iloc[i]),
-            float(percent_b.iloc[i])
-        ))
-    last_index = len(df) - 1
-    starts = []
-    i = 0
-    while i < len(labels):
-        if labels[i] == signal:
-            start = i
-            while i + 1 < len(labels) and labels[i + 1] == signal:
-                i += 1
-            if i != last_index:
-                starts.append(start)
-        i += 1
+    i = len(df) - 1
+    label = res["labels"][i]
+    r = res["rsi"][i]
+    if label is None or r != r:
+        return None
+    ma = res["ma"]
+    volume20 = df["Volume"].rolling(20).mean().iloc[i]
+    volume = df["Volume"].iloc[i]
+    def m(k):
+        v = ma[k][i]
+        return round(float(v), 2) if v == v else None
+    return {
+        "signal": label,
+        "tiers": res["extra"][i]["fired"],
+        "date": df.index[i].date().isoformat(),
+        "close": round(float(df["Close"].iloc[i]), 2),
+        "rsi14": round(float(r), 2),
+        "drawdown": round(-res["dd"][i], 2),
+        "drawdown60_pct": round(-res["dd"][i], 2),
+        "percent_b": round(float(res["pctb"][i]), 3),
+        "ma10": m(10), "ma20": m(20), "ma50": m(50), "ma100": m(100), "ma200": m(200),
+        "reasons": _reasons(res, i, label),
+        "rule": "웅덩이매매법 V12",
+        "volume": 0 if pd.isna(volume) else int(volume),
+        "avg_volume20": round(float(volume20), 0) if not pd.isna(volume20) else None,
+    }
+def past_signal_cases(df, res, signal, horizons=(3, 5, 10, 20), limit=20):
+    """같은 단계의 V12 신호가 과거에 발동했을 때 다음날 시가에 샀다면? (최근 limit건)"""
+    if df is None or len(df) < 61:
+        return None
+    n = len(df)
+    idxs = [i for i in range(n - 1) if res["labels"][i] == signal]   # 현재 봉은 제외
     opens = df["Open"].astype(float)
     closes = df["Close"].astype(float)
     cases = []
-    for start in starts:
-        entry = start + 1
-        if entry >= len(df):
-            continue
+    for i in idxs:
+        entry = i + 1
         entry_price = float(opens.iloc[entry])
         if pd.isna(entry_price) or entry_price <= 0:
             continue
@@ -434,20 +503,15 @@ def past_signal_cases(df, signal, horizons=(3, 5, 10, 20), limit=20):
             exit_index = entry + days
             returns[str(days)] = (
                 round((float(closes.iloc[exit_index]) / entry_price - 1) * 100, 2)
-                if exit_index < len(df) else None
+                if exit_index < n else None
             )
         cases.append({
-            "date": df.index[start].date().isoformat(),
+            "date": df.index[i].date().isoformat(),
             "entry_date": df.index[entry].date().isoformat(),
             "entry_price": round(entry_price, 2),
-            "returns": returns
+            "returns": returns,
         })
-    return {
-        "signal": signal,
-        "years": 3,
-        "total": len(starts),
-        "cases": list(reversed(cases[-limit:]))
-    }
+    return {"signal": signal, "years": 3, "total": len(idxs), "cases": list(reversed(cases[-limit:]))}
 def get_company_name(ticker):
     # 개별 종목마다 추가 API를 호출하지 않도록 ticker를 기본 이름으로 사용
     return ticker
@@ -677,11 +741,12 @@ def main():
     old_data = read_json(LATEST_FILE, {})
     tickers, is_full_nasdaq100 = get_tickers()
     signals = []
+    signal_cases = {}
     price_history = {}
     failures = 0
     for index, ticker in enumerate(tickers, start=1):
         print(f"[{index}/{len(tickers)}] {ticker}")
-        df = download(ticker, "1y")
+        df = drop_unconfirmed(download(ticker, "3y"))
         if df is None or df.empty:
             failures += 1
             print(f"주가 데이터 없음: {ticker}")
@@ -690,14 +755,18 @@ def main():
             if isinstance(old_prices, list) and old_prices:
                 price_history[ticker] = old_prices
             continue
-        price_history[ticker] = serialise_prices(df)
-        result = calculate_signal(df)
+        price_history[ticker] = serialise_prices(df.tail(252))
+        engine = run_v12(df) if len(df) >= 61 else None
+        result = latest_signal(df, engine) if engine else None
         if result is not None:
             signals.append({
                 "ticker": ticker,
                 "name": get_company_name(ticker),
                 **result
             })
+            cases = past_signal_cases(df, engine, result["signal"])
+            if cases is not None:
+                signal_cases[ticker] = cases
     if not price_history:
         raise RuntimeError(
             "주가 데이터를 확보하지 못했습니다. "
@@ -712,13 +781,6 @@ def main():
         [item["ticker"] for item in signals],
         old_data.get("analyst_info", {})
     )
-    signal_cases = {}
-    for item in signals:
-        df3 = download(item["ticker"], "3y")
-        cases = past_signal_cases(df3, item["signal"])
-        if cases is not None:
-            signal_cases[item["ticker"]] = cases
-        time.sleep(0.2)
     output = {
         "updated_at": datetime.now(KST).isoformat(timespec="seconds"),
         "source": "Yahoo Finance / FRED",
@@ -741,6 +803,7 @@ def main():
             "symbols_failed": failures,
             "analyst": analyst_stats,
             "version": SCAN_VERSION,
+            "rule": "웅덩이매매법 V12",
             "cases": {
                 "attempted": len(signals),
                 "ok": len(signal_cases),
