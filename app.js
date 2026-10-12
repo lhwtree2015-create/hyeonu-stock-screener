@@ -7,12 +7,19 @@
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => [...document.querySelectorAll(selector)];
 
+  // 웅덩이매매법 V12 신호 단계 (강한 순). 아래 구버전 이름은 옛 이력 표시용
   const SIGNAL_STRENGTH = {
+    "급락웅줍+": 4,
+    "급락웅줍": 3,
+    "강웅줍": 2,
+    "웅줍": 1,
     "패닉셀": 4,
     "급락": 3,
     "조정": 2,
     "단기조정": 1
   };
+
+  const SIGNAL_ORDER = ["급락웅줍+", "급락웅줍", "강웅줍", "웅줍"];
 
   // 시장 요약 화면의 섹션 구성 (한 줄에 지표 2개씩 묶어서 표시)
   const MACRO_SECTIONS = [
@@ -1027,6 +1034,10 @@
   // =========================================================
 
   const SIGNAL_TONE = {
+    "급락웅줍+": { cls: "tone-panic", color: "#d92d20" },
+    "급락웅줍": { cls: "tone-crash", color: "#7e22ce" },
+    "강웅줍": { cls: "tone-drop", color: "#e8590c" },
+    "웅줍": { cls: "tone-short", color: "#3b5fe5" },
     "패닉셀": { cls: "tone-panic", color: "#d92d20" },
     "급락": { cls: "tone-drop", color: "#e8590c" },
     "조정": { cls: "tone-adjust", color: "#dc6803" },
@@ -1231,7 +1242,7 @@
 
     const counts = { all: base.length };
 
-    Object.keys(SIGNAL_STRENGTH).forEach(name => {
+    SIGNAL_ORDER.forEach(name => {
       counts[name] = 0;
     });
 
@@ -1248,7 +1259,7 @@
 
     container.innerHTML =
       chip("all", "전체", "") +
-      Object.keys(SIGNAL_STRENGTH)
+      SIGNAL_ORDER
         .map(name => chip(name, name, SIGNAL_TONE[name].cls))
         .join("");
   }
@@ -2402,6 +2413,9 @@
           : "",
         ma200Gap !== null
           ? `MA200 대비 ${signed(ma200Gap)}.`
+          : "",
+        Array.isArray(item.reasons) && item.reasons.length
+          ? `발동 조건: ${item.reasons.join(" · ")}.`
           : "",
         "지표는 참고용이며 추가 추세 확인이 필요합니다."
       ].filter(Boolean).join(" ");
@@ -3752,10 +3766,12 @@
       .sc-chip.tone-drop { border-color: transparent; background: #ffead5; color: #e8590c; }
       .sc-chip.tone-adjust { border-color: transparent; background: #fef0c7; color: #b54708; }
       .sc-chip.tone-short { border-color: transparent; background: #e0eaff; color: #3538cd; }
+      .sc-chip.tone-crash { border-color: transparent; background: #f3e8ff; color: #7e22ce; }
 
       .sc-chip.tone-panic.active,
       .sc-chip.tone-drop.active,
       .sc-chip.tone-adjust.active,
+      .sc-chip.tone-crash.active,
       .sc-chip.tone-short.active {
         box-shadow: inset 0 0 0 2px currentColor;
       }
@@ -3885,6 +3901,7 @@
       .sc-badge.tone-drop { background: #ffead5; color: #e8590c; }
       .sc-badge.tone-adjust { background: #fef0c7; color: #b54708; }
       .sc-badge.tone-short { background: #e0eaff; color: #3538cd; }
+      .sc-badge.tone-crash { background: #f3e8ff; color: #7e22ce; }
 
       .sc-price {
         font-size: 15px;
