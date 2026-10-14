@@ -1,0 +1,37 @@
+name: Live Quotes
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 미국 장 시간대(서머타임·표준시 모두 포함)에 5분마다, 그 외에는 매시간
+    - cron: '*/5 12-21 * * 1-5'
+    - cron: '7 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-quotes
+  cancel-in-progress: true
+
+jobs:
+  quotes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Fetch quotes
+        run: python scripts/fetch_quotes.py
+      - name: Publish snapshot branch
+        run: |
+          cd market_data
+          git init -q -b market-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "quotes $(date -u +%FT%TZ)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" market-data
