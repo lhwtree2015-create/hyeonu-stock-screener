@@ -276,6 +276,128 @@
     return out;
   }
 
+  // ---- 5분 단위 시세 스냅샷 (Actions 'Live Quotes'가 market-data 브랜치에 저장) ----
+  const MACRO_SYMBOLS = {
+    "나스닥-100": "^NDX",
+    "S&P 500": "^GSPC",
+    "미국 10년물 금리": "^TNX",
+    "VIX": "^VIX",
+    "금": "GC=F",
+    "원·달러 환율": "KRW=X",
+    "비트코인": "BTC-USD",
+    "달러 인덱스": "DX-Y.NYB"
+  };
+
+  const snapshot = { at: 0, data: null };
+
+  function snapshotUrl() {
+    if (CONFIG.snapshotUrl) {
+      return CONFIG.snapshotUrl;
+    }
+
+    const host = window.location?.hostname || "";
+
+    if (!host.endsWith(".github.io")) {
+      return "";
+    }
+
+    const owner = host.split(".")[0];
+    const repo = (window.location.pathname || "").split("/").filter(Boolean)[0];
+
+    return repo
+      ? `https://raw.githubusercontent.com/${owner}/${repo}/market-data/quotes.json`
+      : "";
+  }
+
+  async function loadSnapshot(force) {
+    if (!force && snapshot.data && Date.now() - snapshot.at < 45000) {
+      return snapshot.data;
+    }
+
+    const base = snapshotUrl();
+
+    if (!base) {
+      return snapshot.data;
+    }
+
+    try {
+      const response = await fetchTimeout(`${base}?t=${Date.now()}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const json = await response.json();
+
+      if (isObject(json) && isObject(json.quotes)) {
+        snapshot.data = json;
+        snapshot.at = Date.now();
+      }
+    } catch (error) {
+      // 스냅샷이 아직 없으면 조용히 건너뛴다
+    }
+
+    return snapshot.data;
+  }
+
+  async function quoteSnapshot(tickers) {
+    const json = await loadSnapshot(false);
+
+    if (!json) {
+      return {};
+    }
+
+    const out = {};
+
+    tickers.forEach(ticker => {
+      const quote = json.quotes[ticker];
+      const price = number(quote?.p);
+
+      if (price > 0) {
+        const previous = number(quote.pc);
+
+        out[ticker] = {
+          price,
+          change: previous ? price - previous : null,
+          changePct: previous ? (price / previous - 1) * 100 : null,
+          source: "5분 스냅샷",
+          asOf: json.updated_at
+        };
+      }
+    });
+
+    return out;
+  }
+
+  async function refreshMacro(force) {
+    const json = await loadSnapshot(Boolean(force));
+
+    if (!json) {
+      return;
+    }
+
+    const map = {};
+
+    Object.entries(MACRO_SYMBOLS).forEach(([name, symbol]) => {
+      const quote = json.quotes[symbol];
+      const price = number(quote?.p);
+
+      if (price > 0) {
+        map[name] = {
+          price,
+          open: number(quote.o),
+          high: number(quote.h),
+          low: number(quote.l),
+          date: quote.d
+        };
+      }
+    });
+
+    if (Object.keys(map).length) {
+      App.applyMacroQuotes(map);
+    }
+  }
+
   async function quoteYahoo(tickers) {
     const targets = tickers.filter(ticker => !ticker.endsWith("-USD"));
 
@@ -367,7 +489,7 @@
     const wanted = [...new Set(tickers)].filter(Boolean);
     const result = {};
 
-    for (const provider of [quoteProxy, quoteFinnhub, quoteYahoo]) {
+    for (const provider of [quoteProxy, quoteFinnhub, quoteSnapshot, quoteYahoo]) {
       const missing = wanted.filter(
         ticker => !result[ticker] && !ticker.endsWith("-USD")
       );
@@ -429,12 +551,19 @@
         }
 
         const sources = [...new Set(got.map(ticker => quotes[ticker].source))];
-        const time = new Date().toLocaleTimeString("ko-KR", { hour12: false });
+        const asOf = got.map(ticker => quotes[ticker].asOf).find(Boolean);
 
-        setQuoteStatus(`실시간 시세 · ${sources.join("/")} · ${time}`);
+        const time = (asOf ? new Date(asOf) : new Date()).toLocaleTimeString(
+          "ko-KR",
+          { hour12: false, hour: "2-digit", minute: "2-digit" }
+        );
+
+        setQuoteStatus(
+          `${asOf ? "시세" : "실시간 시세"} · ${sources.join("/")} · ${time}${asOf ? " 기준" : ""}`
+        );
       } else {
         setQuoteStatus(
-          "스캔 기준 시세 · 실시간 연결 안 됨 (config.js 설정 필요)"
+          "스캔 기준 시세 · 시세 스냅샷 대기 중 (Actions의 Live Quotes 실행 필요)"
         );
       }
     } finally {
@@ -455,6 +584,18 @@
       // 상세 화면은 매번, 목록 화면은 4번에 한 번만 (무료 한도 보호)
       if (App.getCurrentPage() === "detail" || pollTick % 4 === 0) {
         refreshQuotes();
+      }
+
+      if (App.getCurrentPage() === "macro") {
+        refreshMacro(false);
+      }
+
+      // 약 10분마다 스캔 데이터(latest.json)도 다시 읽는다 (상세 화면 열람 중에는 제외)
+      if (
+        pollTick % Math.max(1, Math.round(600 / seconds)) === 0 &&
+        App.getCurrentPage() !== "detail"
+      ) {
+        App.refreshData();
       }
     }, seconds * 1000);
   }
@@ -1407,6 +1548,8 @@
         ensureUniverse(false).then(() => ensureTrump(false));
       } else if (name === "detail" || name === "scanner") {
         refreshQuotes();
+      } else if (name === "macro") {
+        refreshMacro(false);
       }
     });
 
@@ -1425,7 +1568,7 @@
         renderUniverseAll();
       }
 
-      await refreshQuotes();
+      await Promise.allSettled([refreshQuotes(), refreshMacro(true)]);
     });
 
     if (U.ready) {
@@ -1441,6 +1584,7 @@
     }
 
     setQuoteStatus("스캔 기준 시세");
+    refreshMacro(false);
     startPolling();
   }
 
