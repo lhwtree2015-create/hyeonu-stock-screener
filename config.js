@@ -5,11 +5,13 @@
 //                  (미국 주식·ETF 현재가. 무료 한도: 분당 60회)
 //  2) quoteProxy : 직접 만든 시세 프록시 주소 (예: Cloudflare Worker).
 //                  GET {주소}?symbols=AAPL,MSFT  →  {"AAPL":{"price":1,"change":0.1,"changePct":0.5}}
-// 둘 다 비워 두면 야후 직접 조회를 시도하고, 안 되면 스캔 시점의 가격을 표시합니다.
+// 둘 다 비워 두면 Actions의 'Live Quotes'가 만든 5분 단위 시세 스냅샷을 사용합니다(키 불필요).
 // 암호화폐는 키 없이 CoinGecko에서 가져옵니다.
 // 주의: 이 파일은 공개 저장소에 올라가므로, 읽기 전용 무료 키만 사용하세요.
 window.HYEONU_CONFIG = {
-  finnhubKey: "db5s9ppr01qmd5lfbbhgdb5s9ppr01qmd5lfbbi0",
+  finnhubKey: "",
   quoteProxy: "",
+  // 5분마다 갱신되는 시세 스냅샷 주소 (비워 두면 github.io 주소에서 자동 계산)
+  snapshotUrl: "",
   pollSeconds: 15
 };

@@ -748,6 +748,79 @@
   // 6. 페이지 이동
   // =========================================================
 
+  let macroDirty = false;
+
+  // 시장 지표 카드(값·1D·마지막 캔들)를 5분 스냅샷 시세로 갱신
+  function applyMacroQuotes(map) {
+    let changed = false;
+
+    Object.entries(map || {}).forEach(([name, quote]) => {
+      const rows = latestData.macro_history?.[name];
+      const price = number(quote?.price);
+
+      if (
+        !Array.isArray(rows) ||
+        !rows.length ||
+        price === null ||
+        price <= 0 ||
+        !validDate(quote.date)
+      ) {
+        return;
+      }
+
+      const last = rows[rows.length - 1];
+
+      if (!isObject(last) || !validDate(last.date) || quote.date < last.date) {
+        return;
+      }
+
+      const high = number(quote.high) ?? price;
+      const low = number(quote.low) ?? price;
+
+      if (quote.date === last.date) {
+        if (last.close === price) {
+          return;
+        }
+
+        last.close = price;
+        last.high = Math.max(number(last.high) ?? price, price, high);
+        last.low = Math.min(number(last.low) ?? price, price, low);
+      } else {
+        rows.push({
+          date: quote.date,
+          open: number(quote.open) ?? number(last.close) ?? price,
+          high: Math.max(price, high),
+          low: Math.min(price, low),
+          close: price,
+          volume: 0
+        });
+      }
+
+      const values = latestData.macro?.values;
+
+      if (isObject(values)) {
+        values[name] = {
+          ...(isObject(values[name]) ? values[name] : {}),
+          value: price,
+          updated_at: quote.date
+        };
+      }
+
+      changed = true;
+    });
+
+    if (!changed) {
+      return;
+    }
+
+    // 숨겨진 화면에서는 차트 폭을 알 수 없어, 보일 때 다시 그린다
+    if (currentPageName() === "macro") {
+      renderMacro(latestData);
+    } else {
+      macroDirty = true;
+    }
+  }
+
   function showPage(name) {
     $$(".tabs [data-page]").forEach(button => {
       button.classList.toggle(
@@ -770,6 +843,11 @@
         console.error("[page hook]", error);
       }
     });
+
+    if (name === "macro" && macroDirty) {
+      macroDirty = false;
+      renderMacro(latestData);
+    }
 
     if (name === "detail") {
       requestAnimationFrame(drawStockChart);
@@ -4790,6 +4868,8 @@
     showPage,
     openDetailAny,
     applyLiveQuotes,
+    applyMacroQuotes,
+    refreshData,
     getLatest: () => latestData,
     getSignals: () => signals,
     getCurrentPage: () => currentPageName(),
