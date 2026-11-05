@@ -17,3 +17,6 @@
 6. Settings → Pages에 표시되는 실제 URL을 사용합니다.
 
 GitHub Pages 주소는 일반적으로 `https://사용자이름.github.io/저장소이름/` 형태입니다. 실제 URL은 GitHub가 표시한 것을 확인해야 합니다.
+
+## 반려동물 앱
+`pet-app/` 폴더에 반려동물 기록 앱(초코의 일상, 가제)이 있습니다. 배포 주소 뒤에 `/pet-app/`을 붙여 여세요. 자세한 내용은 [pet-app/README.md](pet-app/README.md)를 보세요.
