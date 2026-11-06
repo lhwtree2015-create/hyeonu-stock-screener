@@ -1,57 +1,142 @@
 {
-  "updated_at": "2026-11-05T22:56:46+09:00",
+  "updated_at": "2026-11-06T22:53:14+09:00",
   "source": "Yahoo Finance / FRED",
   "ticker_count": 30,
   "signals": [
     {
-      "ticker": "META",
-      "name": "META",
-      "signal": "급락웅줍",
+      "ticker": "NVDA",
+      "name": "NVDA",
+      "signal": "급락웅줍+",
       "tiers": [
-        "급락웅줍"
+        "급락웅줍+"
       ],
-      "date": "2026-11-04",
-      "close": 630.0,
-      "rsi14": 40.12,
-      "drawdown": -18.98,
-      "drawdown60_pct": -18.98,
-      "percent_b": 0.288,
-      "ma10": 625.2,
-      "ma20": 673.89,
-      "ma50": 673.56,
-      "ma100": 633.21,
-      "ma200": 632.17,
+      "date": "2026-11-05",
+      "close": 181.6,
+      "rsi14": 25.39,
+      "drawdown": -24.09,
+      "drawdown60_pct": -24.09,
+      "percent_b": -0.248,
+      "ma10": 206.91,
+      "ma20": 213.68,
+      "ma50": 220.64,
+      "ma100": 214.2,
+      "ma200": 204.66,
       "reasons": [
-        "첫 급락웅줍 이후 MA10 아래로 내려갔다가 MA10 상향 돌파(재신호)"
+        "60일 고점 대비 -24.1% (≥23%)",
+        "RSI 25.4 ≤ 28",
+        "BB %B -0.25 ≤ -0.05"
       ],
       "rule": "웅덩이매매법 V12",
-      "volume": 32401000,
-      "avg_volume20": 24376300.0
+      "volume": 303158900,
+      "avg_volume20": 112772085.0
     },
     {
-      "ticker": "NFLX",
-      "name": "NFLX",
+      "ticker": "TSLA",
+      "name": "TSLA",
       "signal": "급락웅줍",
       "tiers": [
         "급락웅줍"
       ],
-      "date": "2026-11-04",
-      "close": 66.39,
-      "rsi14": 47.45,
-      "drawdown": -19.75,
-      "drawdown60_pct": -19.75,
-      "percent_b": 0.466,
-      "ma10": 63.76,
-      "ma20": 66.89,
-      "ma50": 71.68,
-      "ma100": 73.11,
-      "ma200": 81.24,
+      "date": "2026-11-05",
+      "close": 343.69,
+      "rsi14": 35.81,
+      "drawdown": -15.65,
+      "drawdown60_pct": -15.65,
+      "percent_b": -0.045,
+      "ma10": 390.98,
+      "ma20": 381.65,
+      "ma50": 372.07,
+      "ma100": 367.25,
+      "ma200": 384.32,
       "reasons": [
-        "첫 급락웅줍 이후 MA10 아래로 내려갔다가 MA10 상향 돌파(재신호)"
+        "패닉 저점: 저가 낙폭 17.0% ≥ 14%",
+        "RSI 35.8 ≤ 42"
       ],
       "rule": "웅덩이매매법 V12",
-      "volume": 49705800,
-      "avg_volume20": 46043440.0
+      "volume": 79133000,
+      "avg_volume20": 39946145.0
+    },
+    {
+      "ticker": "AMD",
+      "name": "AMD",
+      "signal": "강웅줍",
+      "tiers": [
+        "웅줍",
+        "강웅줍"
+      ],
+      "date": "2026-11-05",
+      "close": 404.4,
+      "rsi14": 29.75,
+      "drawdown": -37.73,
+      "drawdown60_pct": -37.73,
+      "percent_b": -0.167,
+      "ma10": 510.19,
+      "ma20": 535.25,
+      "ma50": 547.37,
+      "ma100": 527.5,
+      "ma200": 415.0,
+      "reasons": [
+        "RSI 29.7 ≤ 35",
+        "BB %B -0.17 ≤ 0.2",
+        "MA200 근접"
+      ],
+      "rule": "웅덩이매매법 V12",
+      "volume": 70453900,
+      "avg_volume20": 25949850.0
+    },
+    {
+      "ticker": "ADI",
+      "name": "ADI",
+      "signal": "강웅줍",
+      "tiers": [
+        "웅줍",
+        "강웅줍"
+      ],
+      "date": "2026-11-05",
+      "close": 361.01,
+      "rsi14": 34.99,
+      "drawdown": -16.68,
+      "drawdown60_pct": -16.68,
+      "percent_b": -0.205,
+      "ma10": 410.29,
+      "ma20": 405.81,
+      "ma50": 390.74,
+      "ma100": 388.27,
+      "ma200": 374.12,
+      "reasons": [
+        "RSI 35.0 ≤ 35",
+        "BB %B -0.20 ≤ 0.2",
+        "MA200 근접"
+      ],
+      "rule": "웅덩이매매법 V12",
+      "volume": 13100900,
+      "avg_volume20": 4571215.0
+    },
+    {
+      "ticker": "PANW",
+      "name": "PANW",
+      "signal": "급락웅줍",
+      "tiers": [
+        "급락웅줍"
+      ],
+      "date": "2026-11-05",
+      "close": 314.67,
+      "rsi14": 33.01,
+      "drawdown": -25.06,
+      "drawdown60_pct": -25.06,
+      "percent_b": -0.016,
+      "ma10": 367.83,
+      "ma20": 368.73,
+      "ma50": 371.68,
+      "ma100": 355.62,
+      "ma200": 272.93,
+      "reasons": [
+        "패닉 저점: 저가 낙폭 25.7% ≥ 14%",
+        "RSI 33.0 ≤ 42"
+      ],
+      "rule": "웅덩이매매법 V12",
+      "volume": 13320100,
+      "avg_volume20": 6106520.0
     }
   ],
   "company_info": {
@@ -119,7 +204,7 @@
       "sector": "Technology",
       "industry": "Semiconductors",
       "company_name": "NVIDIA Corporation",
-      "market_cap": 4879142617088
+      "market_cap": 4385095286784
     },
     "AVGO": {
       "sector": "Technology",
@@ -131,13 +216,13 @@
       "sector": "Technology",
       "industry": "Semiconductors",
       "company_name": "Advanced Micro Devices, Inc.",
-      "market_cap": 872949678080
+      "market_cap": 663251320832
     },
     "PANW": {
       "sector": "Technology",
       "industry": "Software - Infrastructure",
       "company_name": "Palo Alto Networks, Inc.",
-      "market_cap": 286618812416
+      "market_cap": 257539506176
     },
     "META": {
       "sector": "Communication Services",
@@ -186,6 +271,18 @@
       "industry": "Entertainment",
       "company_name": "Netflix, Inc.",
       "market_cap": 276443955200
+    },
+    "TSLA": {
+      "sector": "Consumer Cyclical",
+      "industry": "Auto Manufacturers",
+      "company_name": "Tesla, Inc.",
+      "market_cap": 1358523400192
+    },
+    "ADI": {
+      "sector": "Technology",
+      "industry": "Semiconductors",
+      "company_name": "Analog Devices, Inc.",
+      "market_cap": 174932983808
     }
   },
   "analyst_info": {
@@ -2066,17 +2163,17 @@
       ]
     },
     "NVDA": {
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "window_days": 365,
       "source": "upgrades_downgrades",
       "summary": {
-        "buy": 35,
+        "buy": 33,
         "hold": 1,
         "sell": 0,
-        "targetMean": 329.64,
+        "targetMean": 331.68,
         "targetLow": 215.0,
         "targetHigh": 515.0,
-        "numberAnalysts": 36
+        "numberAnalysts": 34
       },
       "brokers": [
         {
@@ -2316,20 +2413,6 @@
           "date": "2025-11-20",
           "action": "main",
           "target_price": 215.0
-        },
-        {
-          "firm": "Goldman Sachs",
-          "rating": "Buy",
-          "date": "2025-11-03",
-          "action": "main",
-          "target_price": 240.0
-        },
-        {
-          "firm": "Loop Capital",
-          "rating": "Buy",
-          "date": "2025-11-03",
-          "action": "main",
-          "target_price": 350.0
         }
       ]
     },
@@ -2565,32 +2648,137 @@
       ]
     },
     "AMD": {
-      "updated_at": "2026-10-21",
+      "updated_at": "2026-11-06",
       "window_days": 365,
       "source": "upgrades_downgrades",
       "summary": {
         "buy": 32,
         "hold": 6,
         "sell": 0,
-        "targetMean": 594.32,
+        "targetMean": 595.16,
         "targetLow": 265.0,
         "targetHigh": 800.0,
         "numberAnalysts": 38
       },
       "brokers": [
         {
-          "firm": "Susquehanna",
-          "rating": "Positive",
-          "date": "2026-10-21",
+          "firm": "UBS",
+          "rating": "Buy",
+          "date": "2026-11-04",
           "action": "main",
-          "target_price": 620.0
+          "target_price": 700.0
+        },
+        {
+          "firm": "JP Morgan",
+          "rating": "Neutral",
+          "date": "2026-11-04",
+          "action": "main",
+          "target_price": 575.0
+        },
+        {
+          "firm": "Morgan Stanley",
+          "rating": "Equal-Weight",
+          "date": "2026-11-04",
+          "action": "main",
+          "target_price": 550.0
+        },
+        {
+          "firm": "Piper Sandler",
+          "rating": "Overweight",
+          "date": "2026-11-04",
+          "action": "main",
+          "target_price": 650.0
+        },
+        {
+          "firm": "Wells Fargo",
+          "rating": "Overweight",
+          "date": "2026-11-04",
+          "action": "main",
+          "target_price": 650.0
+        },
+        {
+          "firm": "RBC Capital",
+          "rating": "Sector Perform",
+          "date": "2026-11-04",
+          "action": "reit",
+          "target_price": 540.0
+        },
+        {
+          "firm": "Truist Securities",
+          "rating": "Buy",
+          "date": "2026-11-04",
+          "action": "main",
+          "target_price": 605.0
         },
         {
           "firm": "Wedbush",
           "rating": "Outperform",
-          "date": "2026-10-20",
+          "date": "2026-11-04",
           "action": "reit",
           "target_price": 600.0
+        },
+        {
+          "firm": "StoneX",
+          "rating": "Buy",
+          "date": "2026-11-04",
+          "action": "reit",
+          "target_price": 685.0
+        },
+        {
+          "firm": "DA Davidson",
+          "rating": "Buy",
+          "date": "2026-11-04",
+          "action": "main",
+          "target_price": 600.0
+        },
+        {
+          "firm": "Keybanc",
+          "rating": "Overweight",
+          "date": "2026-11-04",
+          "action": "reit",
+          "target_price": 725.0
+        },
+        {
+          "firm": "Rosenblatt",
+          "rating": "Buy",
+          "date": "2026-11-04",
+          "action": "main",
+          "target_price": 700.0
+        },
+        {
+          "firm": "Mizuho",
+          "rating": "Outperform",
+          "date": "2026-11-04",
+          "action": "main",
+          "target_price": 610.0
+        },
+        {
+          "firm": "Cantor Fitzgerald",
+          "rating": "Overweight",
+          "date": "2026-11-04",
+          "action": "reit",
+          "target_price": 700.0
+        },
+        {
+          "firm": "Stifel",
+          "rating": "Buy",
+          "date": "2026-11-04",
+          "action": "main",
+          "target_price": 725.0
+        },
+        {
+          "firm": "B of A Securities",
+          "rating": "Buy",
+          "date": "2026-11-04",
+          "action": "main",
+          "target_price": 650.0
+        },
+        {
+          "firm": "Susquehanna",
+          "rating": "Positive",
+          "date": "2026-10-28",
+          "action": "main",
+          "target_price": 650.0
         },
         {
           "firm": "Citigroup",
@@ -2598,48 +2786,6 @@
           "date": "2026-10-06",
           "action": "main",
           "target_price": 800.0
-        },
-        {
-          "firm": "Mizuho",
-          "rating": "Outperform",
-          "date": "2026-10-06",
-          "action": "main",
-          "target_price": 705.0
-        },
-        {
-          "firm": "Stifel",
-          "rating": "Buy",
-          "date": "2026-10-05",
-          "action": "main",
-          "target_price": 700.0
-        },
-        {
-          "firm": "StoneX",
-          "rating": "Buy",
-          "date": "2026-09-29",
-          "action": "reit",
-          "target_price": 685.0
-        },
-        {
-          "firm": "Rosenblatt",
-          "rating": "Buy",
-          "date": "2026-09-29",
-          "action": "main",
-          "target_price": 700.0
-        },
-        {
-          "firm": "B of A Securities",
-          "rating": "Buy",
-          "date": "2026-09-25",
-          "action": "main",
-          "target_price": 720.0
-        },
-        {
-          "firm": "Piper Sandler",
-          "rating": "Overweight",
-          "date": "2026-09-10",
-          "action": "init",
-          "target_price": 600.0
         },
         {
           "firm": "Raymond James",
@@ -2663,55 +2809,6 @@
           "target_price": 625.0
         },
         {
-          "firm": "DA Davidson",
-          "rating": "Buy",
-          "date": "2026-08-05",
-          "action": "main",
-          "target_price": 550.0
-        },
-        {
-          "firm": "Morgan Stanley",
-          "rating": "Equal-Weight",
-          "date": "2026-08-05",
-          "action": "main",
-          "target_price": 465.0
-        },
-        {
-          "firm": "JP Morgan",
-          "rating": "Neutral",
-          "date": "2026-08-05",
-          "action": "main",
-          "target_price": 550.0
-        },
-        {
-          "firm": "Truist Securities",
-          "rating": "Buy",
-          "date": "2026-08-05",
-          "action": "main",
-          "target_price": 594.0
-        },
-        {
-          "firm": "Wells Fargo",
-          "rating": "Overweight",
-          "date": "2026-08-05",
-          "action": "main",
-          "target_price": 700.0
-        },
-        {
-          "firm": "RBC Capital",
-          "rating": "Sector Perform",
-          "date": "2026-08-05",
-          "action": "reit",
-          "target_price": 540.0
-        },
-        {
-          "firm": "Cantor Fitzgerald",
-          "rating": "Overweight",
-          "date": "2026-08-05",
-          "action": "reit",
-          "target_price": 700.0
-        },
-        {
           "firm": "Evercore ISI Group",
           "rating": "Outperform",
           "date": "2026-08-05",
@@ -2726,24 +2823,10 @@
           "target_price": 665.0
         },
         {
-          "firm": "Keybanc",
-          "rating": "Overweight",
-          "date": "2026-08-05",
-          "action": "reit",
-          "target_price": 725.0
-        },
-        {
           "firm": "Northland Capital Markets",
           "rating": "Market Perform",
           "date": "2026-08-05",
           "action": "reit"
-        },
-        {
-          "firm": "UBS",
-          "rating": "Buy",
-          "date": "2026-07-25",
-          "action": "main",
-          "target_price": 730.0
         },
         {
           "firm": "Jefferies",
@@ -2846,7 +2929,7 @@
       ]
     },
     "PANW": {
-      "updated_at": "2026-11-04",
+      "updated_at": "2026-11-06",
       "window_days": 365,
       "source": "upgrades_downgrades",
       "summary": {
@@ -4845,459 +4928,931 @@
           "target_price": 134.0
         }
       ]
+    },
+    "TSLA": {
+      "updated_at": "2026-11-06",
+      "window_days": 365,
+      "source": "upgrades_downgrades",
+      "summary": {
+        "buy": 14,
+        "hold": 11,
+        "sell": 2,
+        "targetMean": 428.03,
+        "targetLow": 24.86,
+        "targetHigh": 600.0,
+        "numberAnalysts": 27
+      },
+      "brokers": [
+        {
+          "firm": "GLJ Research",
+          "rating": "Sell",
+          "date": "2026-11-05",
+          "action": "reit",
+          "target_price": 24.86
+        },
+        {
+          "firm": "Barclays",
+          "rating": "Overweight",
+          "date": "2026-10-26",
+          "action": "up",
+          "target_price": 450.0
+        },
+        {
+          "firm": "UBS",
+          "rating": "Neutral",
+          "date": "2026-10-22",
+          "action": "main",
+          "target_price": 425.0
+        },
+        {
+          "firm": "CLSA",
+          "rating": "Hold",
+          "date": "2026-10-22",
+          "action": "up",
+          "target_price": 400.0
+        },
+        {
+          "firm": "Canaccord Genuity",
+          "rating": "Buy",
+          "date": "2026-10-22",
+          "action": "main",
+          "target_price": 442.0
+        },
+        {
+          "firm": "Morgan Stanley",
+          "rating": "Equal-Weight",
+          "date": "2026-10-22",
+          "action": "main",
+          "target_price": 410.0
+        },
+        {
+          "firm": "BNP Paribas",
+          "rating": "Neutral",
+          "date": "2026-10-22",
+          "action": "up",
+          "target_price": 420.0
+        },
+        {
+          "firm": "RBC Capital",
+          "rating": "Outperform",
+          "date": "2026-10-22",
+          "action": "reit",
+          "target_price": 480.0
+        },
+        {
+          "firm": "JP Morgan",
+          "rating": "Neutral",
+          "date": "2026-10-22",
+          "action": "main",
+          "target_price": 430.0
+        },
+        {
+          "firm": "TD Cowen",
+          "rating": "Buy",
+          "date": "2026-10-22",
+          "action": "reit",
+          "target_price": 460.0
+        },
+        {
+          "firm": "Piper Sandler",
+          "rating": "Overweight",
+          "date": "2026-10-22",
+          "action": "main",
+          "target_price": 475.0
+        },
+        {
+          "firm": "StoneX",
+          "rating": "Buy",
+          "date": "2026-10-22",
+          "action": "reit",
+          "target_price": 475.0
+        },
+        {
+          "firm": "Mizuho",
+          "rating": "Outperform",
+          "date": "2026-10-22",
+          "action": "main",
+          "target_price": 460.0
+        },
+        {
+          "firm": "Cantor Fitzgerald",
+          "rating": "Overweight",
+          "date": "2026-10-22",
+          "action": "reit",
+          "target_price": 485.0
+        },
+        {
+          "firm": "Needham",
+          "rating": "Hold",
+          "date": "2026-10-22",
+          "action": "reit"
+        },
+        {
+          "firm": "Jefferies",
+          "rating": "Hold",
+          "date": "2026-10-12",
+          "action": "main",
+          "target_price": 400.0
+        },
+        {
+          "firm": "Tigress Financial",
+          "rating": "Buy",
+          "date": "2026-10-08",
+          "action": "main",
+          "target_price": 550.0
+        },
+        {
+          "firm": "Goldman Sachs",
+          "rating": "Neutral",
+          "date": "2026-09-16",
+          "action": "reit",
+          "target_price": 360.0
+        },
+        {
+          "firm": "Stifel",
+          "rating": "Buy",
+          "date": "2026-08-03",
+          "action": "main",
+          "target_price": 491.0
+        },
+        {
+          "firm": "Truist Securities",
+          "rating": "Hold",
+          "date": "2026-07-23",
+          "action": "main",
+          "target_price": 370.0
+        },
+        {
+          "firm": "Roth Capital",
+          "rating": "Buy",
+          "date": "2026-07-23",
+          "action": "main",
+          "target_price": 505.0
+        },
+        {
+          "firm": "Wells Fargo",
+          "rating": "Underweight",
+          "date": "2026-07-14",
+          "action": "main",
+          "target_price": 130.0
+        },
+        {
+          "firm": "Citizens",
+          "rating": "Market Perform",
+          "date": "2026-07-09",
+          "action": "init"
+        },
+        {
+          "firm": "Freedom Broker",
+          "rating": "Hold",
+          "date": "2026-07-02",
+          "action": "main",
+          "target_price": 420.0
+        },
+        {
+          "firm": "Wedbush",
+          "rating": "Outperform",
+          "date": "2026-04-23",
+          "action": "reit",
+          "target_price": 600.0
+        },
+        {
+          "firm": "Baird",
+          "rating": "Outperform",
+          "date": "2026-04-06",
+          "action": "main",
+          "target_price": 538.0
+        },
+        {
+          "firm": "Deutsche Bank",
+          "rating": "Buy",
+          "date": "2025-12-19",
+          "action": "main",
+          "target_price": 500.0
+        }
+      ]
+    },
+    "ADI": {
+      "updated_at": "2026-11-06",
+      "window_days": 365,
+      "source": "upgrades_downgrades",
+      "summary": {
+        "buy": 24,
+        "hold": 3,
+        "sell": 0,
+        "targetMean": 460.0,
+        "targetLow": 360.0,
+        "targetHigh": 675.0,
+        "numberAnalysts": 27
+      },
+      "brokers": [
+        {
+          "firm": "TD Cowen",
+          "rating": "Buy",
+          "date": "2026-10-19",
+          "action": "main",
+          "target_price": 475.0
+        },
+        {
+          "firm": "Baird",
+          "rating": "Outperform",
+          "date": "2026-08-24",
+          "action": "main",
+          "target_price": 675.0
+        },
+        {
+          "firm": "BMO Capital",
+          "rating": "Outperform",
+          "date": "2026-08-21",
+          "action": "init",
+          "target_price": 430.0
+        },
+        {
+          "firm": "JP Morgan",
+          "rating": "Overweight",
+          "date": "2026-08-20",
+          "action": "main",
+          "target_price": 500.0
+        },
+        {
+          "firm": "Morgan Stanley",
+          "rating": "Overweight",
+          "date": "2026-08-20",
+          "action": "main",
+          "target_price": 458.0
+        },
+        {
+          "firm": "Bernstein",
+          "rating": "Outperform",
+          "date": "2026-08-20",
+          "action": "up",
+          "target_price": 465.0
+        },
+        {
+          "firm": "Wells Fargo",
+          "rating": "Overweight",
+          "date": "2026-08-20",
+          "action": "main",
+          "target_price": 500.0
+        },
+        {
+          "firm": "Seaport Global",
+          "rating": "Buy",
+          "date": "2026-08-20",
+          "action": "up",
+          "target_price": 425.0
+        },
+        {
+          "firm": "Needham",
+          "rating": "Buy",
+          "date": "2026-08-20",
+          "action": "main",
+          "target_price": 450.0
+        },
+        {
+          "firm": "Cantor Fitzgerald",
+          "rating": "Overweight",
+          "date": "2026-08-17",
+          "action": "reit",
+          "target_price": 550.0
+        },
+        {
+          "firm": "Keybanc",
+          "rating": "Overweight",
+          "date": "2026-07-14",
+          "action": "main",
+          "target_price": 525.0
+        },
+        {
+          "firm": "Stifel",
+          "rating": "Buy",
+          "date": "2026-06-24",
+          "action": "main",
+          "target_price": 498.0
+        },
+        {
+          "firm": "Argus Research",
+          "rating": "Buy",
+          "date": "2026-05-26",
+          "action": "main",
+          "target_price": 460.0
+        },
+        {
+          "firm": "Evercore ISI Group",
+          "rating": "Outperform",
+          "date": "2026-05-21",
+          "action": "main",
+          "target_price": 474.0
+        },
+        {
+          "firm": "Citigroup",
+          "rating": "Buy",
+          "date": "2026-05-21",
+          "action": "main",
+          "target_price": 460.0
+        },
+        {
+          "firm": "Truist Securities",
+          "rating": "Hold",
+          "date": "2026-05-21",
+          "action": "main",
+          "target_price": 405.0
+        },
+        {
+          "firm": "Barclays",
+          "rating": "Overweight",
+          "date": "2026-05-21",
+          "action": "main",
+          "target_price": 450.0
+        },
+        {
+          "firm": "Jefferies",
+          "rating": "Buy",
+          "date": "2026-05-21",
+          "action": "main",
+          "target_price": 475.0
+        },
+        {
+          "firm": "B of A Securities",
+          "rating": "Buy",
+          "date": "2026-05-21",
+          "action": "main",
+          "target_price": 460.0
+        },
+        {
+          "firm": "Deutsche Bank",
+          "rating": "Hold",
+          "date": "2026-05-21",
+          "action": "main",
+          "target_price": 365.0
+        },
+        {
+          "firm": "Goldman Sachs",
+          "rating": "Buy",
+          "date": "2026-05-21",
+          "action": "main",
+          "target_price": 450.0
+        },
+        {
+          "firm": "Raymond James",
+          "rating": "Outperform",
+          "date": "2026-05-21",
+          "action": "main",
+          "target_price": 430.0
+        },
+        {
+          "firm": "Oppenheimer",
+          "rating": "Outperform",
+          "date": "2026-05-12",
+          "action": "main",
+          "target_price": 450.0
+        },
+        {
+          "firm": "UBS",
+          "rating": "Buy",
+          "date": "2026-02-19",
+          "action": "main",
+          "target_price": 430.0
+        },
+        {
+          "firm": "Piper Sandler",
+          "rating": "Neutral",
+          "date": "2026-02-19",
+          "action": "main",
+          "target_price": 360.0
+        },
+        {
+          "firm": "Benchmark",
+          "rating": "Buy",
+          "date": "2026-02-19",
+          "action": "main",
+          "target_price": 400.0
+        },
+        {
+          "firm": "Susquehanna",
+          "rating": "Positive",
+          "date": "2026-02-19",
+          "action": "main",
+          "target_price": 400.0
+        }
+      ]
     }
   },
   "signal_cases": {
-    "META": {
+    "NVDA": {
+      "signal": "급락웅줍+",
+      "years": 3,
+      "total": 0,
+      "cases": []
+    },
+    "TSLA": {
       "signal": "급락웅줍",
       "years": 3,
-      "total": 22,
+      "total": 40,
       "cases": [
-        {
-          "date": "2026-10-22",
-          "entry_date": "2026-10-23",
-          "entry_price": 638.18,
-          "returns": {
-            "3": -4.03,
-            "5": -3.63,
-            "10": null,
-            "20": null
-          }
-        },
-        {
-          "date": "2026-08-25",
-          "entry_date": "2026-08-26",
-          "entry_price": 590.31,
-          "returns": {
-            "3": -3.04,
-            "5": 0.43,
-            "10": 9.16,
-            "20": 31.73
-          }
-        },
-        {
-          "date": "2026-08-13",
-          "entry_date": "2026-08-14",
-          "entry_price": 596.98,
-          "returns": {
-            "3": -8.53,
-            "5": -7.89,
-            "10": -3.18,
-            "20": 11.49
-          }
-        },
         {
           "date": "2026-08-04",
           "entry_date": "2026-08-05",
-          "entry_price": 600.46,
+          "entry_price": 323.42,
           "returns": {
-            "3": -0.92,
-            "5": -3.6,
-            "10": -9.06,
-            "20": -1.27
+            "3": 2.31,
+            "5": 1.26,
+            "10": 8.56,
+            "20": 10.39
           }
         },
         {
-          "date": "2026-07-29",
-          "entry_date": "2026-07-30",
-          "entry_price": 526.0,
+          "date": "2026-07-23",
+          "entry_date": "2026-07-24",
+          "entry_price": 320.72,
           "returns": {
-            "3": 11.78,
-            "5": 12.15,
-            "10": 13.11,
-            "20": 8.57
+            "3": -6.98,
+            "5": -2.97,
+            "10": 2.45,
+            "20": 13.14
           }
         },
         {
-          "date": "2026-07-01",
-          "entry_date": "2026-07-02",
-          "entry_price": 607.9,
+          "date": "2026-06-29",
+          "entry_date": "2026-06-30",
+          "entry_price": 406.0,
           "returns": {
-            "3": -0.79,
-            "5": 10.09,
-            "10": 6.27,
-            "20": -8.42
+            "3": 3.39,
+            "5": -2.94,
+            "10": -2.84,
+            "20": -26.52
           }
         },
         {
-          "date": "2026-06-15",
-          "entry_date": "2026-06-16",
-          "entry_price": 593.65,
+          "date": "2026-06-23",
+          "entry_date": "2026-06-24",
+          "entry_price": 380.08,
           "returns": {
-            "3": -5.02,
-            "5": -6.06,
-            "10": 3.24,
-            "20": 11.94
+            "3": 8.36,
+            "5": 11.9,
+            "10": 6.96,
+            "20": -15.89
           }
         },
         {
-          "date": "2026-06-05",
-          "entry_date": "2026-06-08",
-          "entry_price": 592.0,
+          "date": "2026-04-14",
+          "entry_date": "2026-04-15",
+          "entry_price": 366.83,
           "returns": {
-            "3": -3.98,
-            "5": 0.25,
-            "10": -5.03,
-            "20": 1.88
+            "3": 7.0,
+            "5": 5.64,
+            "10": 1.63,
+            "20": 21.38
           }
         },
         {
           "date": "2026-04-01",
           "entry_date": "2026-04-02",
-          "entry_price": 566.04,
+          "entry_price": 364.2,
           "returns": {
-            "3": 8.19,
-            "5": 11.27,
-            "10": 21.64,
-            "20": 7.55
+            "3": -5.75,
+            "5": -4.19,
+            "10": 10.0,
+            "20": 7.31
           }
         },
         {
-          "date": "2026-03-13",
-          "entry_date": "2026-03-16",
-          "entry_price": 632.0,
+          "date": "2026-03-11",
+          "entry_date": "2026-03-12",
+          "entry_price": 405.18,
           "returns": {
-            "3": -4.0,
-            "5": -4.42,
-            "10": -15.13,
-            "20": 4.82
+            "3": -1.46,
+            "5": -6.14,
+            "10": -8.16,
+            "20": -13.88
           }
         },
         {
-          "date": "2026-01-22",
-          "entry_date": "2026-01-23",
-          "entry_price": 644.77,
+          "date": "2026-02-25",
+          "entry_date": "2026-02-26",
+          "entry_price": 414.42,
           "returns": {
-            "3": 3.72,
-            "5": 11.12,
-            "10": 2.59,
-            "20": -1.17
+            "3": -5.31,
+            "5": -2.14,
+            "10": -4.68,
+            "20": -10.21
           }
         },
         {
-          "date": "2026-01-13",
-          "entry_date": "2026-01-14",
-          "entry_price": 626.5,
+          "date": "2026-02-13",
+          "entry_date": "2026-02-17",
+          "entry_price": 412.36,
           "returns": {
-            "3": -3.57,
-            "5": 3.37,
-            "10": 17.85,
-            "20": 3.72
-          }
-        },
-        {
-          "date": "2025-11-24",
-          "entry_date": "2025-11-25",
-          "entry_price": 624.0,
-          "returns": {
-            "3": 2.7,
-            "5": 2.5,
-            "10": 4.19,
-            "20": 6.98
-          }
-        },
-        {
-          "date": "2025-10-30",
-          "entry_date": "2025-10-31",
-          "entry_price": 674.51,
-          "returns": {
-            "3": -5.72,
-            "5": -7.83,
-            "10": -9.64,
-            "20": -4.99
-          }
-        },
-        {
-          "date": "2025-04-24",
-          "entry_date": "2025-04-25",
-          "entry_price": 546.8,
-          "returns": {
-            "3": 0.4,
-            "5": 9.18,
-            "10": 8.36,
-            "20": 14.68
-          }
-        },
-        {
-          "date": "2025-04-09",
-          "entry_date": "2025-04-10",
-          "entry_price": 575.49,
-          "returns": {
-            "3": -9.38,
-            "5": -12.86,
-            "10": -4.9,
-            "20": 2.95
-          }
-        },
-        {
-          "date": "2025-03-24",
-          "entry_date": "2025-03-25",
-          "entry_price": 626.76,
-          "returns": {
-            "3": -7.98,
-            "5": -6.5,
-            "10": -18.56,
-            "20": -16.99
-          }
-        },
-        {
-          "date": "2025-03-04",
-          "entry_date": "2025-03-05",
-          "entry_price": 641.0,
-          "returns": {
-            "3": -6.71,
-            "5": -3.34,
-            "10": -8.88,
-            "20": -8.9
-          }
-        },
-        {
-          "date": "2024-07-31",
-          "entry_date": "2024-08-01",
-          "entry_price": 521.0,
-          "returns": {
-            "3": -5.17,
-            "5": -2.18,
-            "10": 3.13,
-            "20": -0.53
-          }
-        },
-        {
-          "date": "2024-07-17",
-          "entry_date": "2024-07-18",
-          "entry_price": 475.0,
-          "returns": {
-            "3": 2.88,
-            "5": -4.55,
-            "10": 4.79,
-            "20": 13.12
-          }
-        }
-      ]
-    },
-    "NFLX": {
-      "signal": "급락웅줍",
-      "years": 3,
-      "total": 23,
-      "cases": [
-        {
-          "date": "2026-10-21",
-          "entry_date": "2026-10-22",
-          "entry_price": 65.11,
-          "returns": {
-            "3": -3.98,
-            "5": -4.7,
-            "10": null,
-            "20": null
-          }
-        },
-        {
-          "date": "2026-10-07",
-          "entry_date": "2026-10-08",
-          "entry_price": 70.09,
-          "returns": {
-            "3": 0.53,
-            "5": 3.6,
-            "10": -4.34,
-            "20": null
-          }
-        },
-        {
-          "date": "2026-09-18",
-          "entry_date": "2026-09-21",
-          "entry_price": 71.82,
-          "returns": {
-            "3": -0.14,
-            "5": -3.61,
-            "10": -6.02,
-            "20": -2.74
-          }
-        },
-        {
-          "date": "2026-07-28",
-          "entry_date": "2026-07-29",
-          "entry_price": 72.19,
-          "returns": {
-            "3": 1.58,
-            "5": 2.78,
-            "10": 2.8,
-            "20": 12.84
-          }
-        },
-        {
-          "date": "2026-07-01",
-          "entry_date": "2026-07-02",
-          "entry_price": 75.09,
-          "returns": {
-            "3": 0.67,
-            "5": -2.29,
-            "10": -8.18,
-            "20": -4.5
-          }
-        },
-        {
-          "date": "2026-05-18",
-          "entry_date": "2026-05-19",
-          "entry_price": 90.14,
-          "returns": {
-            "3": -1.71,
-            "5": -3.1,
-            "10": -9.56,
-            "20": -14.62
-          }
-        },
-        {
-          "date": "2026-04-30",
-          "entry_date": "2026-05-01",
-          "entry_price": 94.42,
-          "returns": {
-            "3": -6.51,
-            "5": -7.34,
-            "10": -7.84,
-            "20": -9.08
-          }
-        },
-        {
-          "date": "2026-04-28",
-          "entry_date": "2026-04-29",
-          "entry_price": 91.23,
-          "returns": {
-            "3": -0.23,
-            "5": -3.24,
-            "10": -4.02,
-            "20": -5.34
-          }
-        },
-        {
-          "date": "2026-02-24",
-          "entry_date": "2026-02-25",
-          "entry_price": 79.43,
-          "returns": {
-            "3": 22.23,
-            "5": 24.21,
-            "10": 19.46,
-            "20": 16.18
+            "3": -0.13,
+            "5": -0.72,
+            "10": -4.83,
+            "20": -3.17
           }
         },
         {
           "date": "2026-02-10",
           "entry_date": "2026-02-11",
-          "entry_price": 81.96,
+          "entry_price": 427.96,
           "returns": {
-            "3": -6.05,
-            "5": -6.05,
-            "10": 3.21,
-            "20": 15.07
+            "3": -4.05,
+            "5": -3.8,
+            "10": -4.53,
+            "20": -7.7
           }
         },
         {
-          "date": "2025-12-26",
-          "entry_date": "2025-12-29",
-          "entry_price": 93.99,
+          "date": "2026-02-04",
+          "entry_date": "2026-02-05",
+          "entry_price": 397.02,
           "returns": {
-            "3": -3.19,
-            "5": -3.55,
-            "10": -3.9,
-            "20": -9.95
-          }
-        },
-        {
-          "date": "2025-12-01",
-          "entry_date": "2025-12-02",
-          "entry_price": 109.21,
-          "returns": {
-            "3": -8.21,
-            "5": -11.45,
-            "10": -13.41,
-            "20": -14.15
+            "3": 7.1,
+            "5": 5.05,
+            "10": 3.73,
+            "20": -0.07
           }
         },
         {
           "date": "2025-11-24",
           "entry_date": "2025-11-25",
-          "entry_price": 106.12,
+          "entry_price": 414.42,
           "returns": {
-            "3": 2.84,
-            "5": -2.04,
-            "10": -12.64,
-            "20": -11.76
+            "3": 3.79,
+            "5": 7.8,
+            "10": 8.94,
+            "20": 17.13
           }
         },
         {
-          "date": "2025-11-07",
-          "entry_date": "2025-11-10",
-          "entry_price": 110.67,
+          "date": "2025-11-13",
+          "entry_date": "2025-11-14",
+          "entry_price": 386.3,
           "returns": {
-            "3": 4.29,
-            "5": -0.35,
-            "10": -3.35,
-            "20": -12.62
+            "3": 4.58,
+            "5": 1.24,
+            "10": 11.35,
+            "20": 23.04
           }
         },
         {
-          "date": "2025-11-03",
-          "entry_date": "2025-11-04",
-          "entry_price": 110.0,
+          "date": "2025-07-10",
+          "entry_date": "2025-07-11",
+          "entry_price": 307.89,
           "returns": {
-            "3": 0.33,
-            "5": 3.31,
-            "10": 3.72,
-            "20": -5.49
+            "3": 4.48,
+            "5": 7.07,
+            "10": 2.65,
+            "20": 7.07
+          }
+        },
+        {
+          "date": "2025-07-01",
+          "entry_date": "2025-07-02",
+          "entry_price": 312.63,
+          "returns": {
+            "3": -4.74,
+            "5": -0.88,
+            "10": 2.17,
+            "20": -1.39
+          }
+        },
+        {
+          "date": "2025-06-13",
+          "entry_date": "2025-06-16",
+          "entry_price": 331.29,
+          "returns": {
+            "3": -2.76,
+            "5": 2.77,
+            "10": -9.23,
+            "20": -2.9
+          }
+        },
+        {
+          "date": "2025-06-05",
+          "entry_date": "2025-06-06",
+          "entry_price": 298.83,
+          "returns": {
+            "3": 9.24,
+            "5": 8.86,
+            "10": 16.68,
+            "20": -0.34
+          }
+        },
+        {
+          "date": "2025-04-23",
+          "entry_date": "2025-04-24",
+          "entry_price": 250.5,
+          "returns": {
+            "3": 16.58,
+            "5": 11.98,
+            "10": 13.7,
+            "20": 36.14
+          }
+        },
+        {
+          "date": "2025-04-21",
+          "entry_date": "2025-04-22",
+          "entry_price": 230.96,
+          "returns": {
+            "3": 23.38,
+            "5": 26.44,
+            "10": 19.22,
+            "20": 48.87
           }
         },
         {
           "date": "2025-04-09",
           "entry_date": "2025-04-10",
-          "entry_price": 93.19,
+          "entry_price": 260.0,
           "returns": {
-            "3": 4.76,
-            "5": 4.41,
-            "10": 18.2,
-            "20": 22.35
+            "3": -2.27,
+            "5": -7.17,
+            "10": 9.6,
+            "20": 14.72
+          }
+        }
+      ]
+    },
+    "AMD": {
+      "signal": "강웅줍",
+      "years": 3,
+      "total": 1,
+      "cases": [
+        {
+          "date": "2024-04-15",
+          "entry_date": "2024-04-16",
+          "entry_price": 162.28,
+          "returns": {
+            "3": -9.64,
+            "5": -6.17,
+            "10": -2.4,
+            "20": -5.62
+          }
+        }
+      ]
+    },
+    "ADI": {
+      "signal": "강웅줍",
+      "years": 3,
+      "total": 3,
+      "cases": [
+        {
+          "date": "2025-10-07",
+          "entry_date": "2025-10-08",
+          "entry_price": 233.8,
+          "returns": {
+            "3": 0.37,
+            "5": 1.86,
+            "10": 2.81,
+            "20": 0.94
           }
         },
         {
-          "date": "2025-04-07",
-          "entry_date": "2025-04-08",
-          "entry_price": 91.24,
+          "date": "2025-08-01",
+          "entry_date": "2025-08-04",
+          "entry_price": 221.42,
           "returns": {
-            "3": 0.64,
-            "5": 7.0,
-            "10": 15.03,
-            "20": 26.63
+            "3": 0.77,
+            "5": 1.2,
+            "10": 4.58,
+            "20": 12.15
           }
         },
         {
-          "date": "2025-03-17",
-          "entry_date": "2025-03-18",
-          "entry_price": 94.0,
+          "date": "2024-11-15",
+          "entry_date": "2024-11-18",
+          "entry_price": 206.52,
           "returns": {
-            "3": 2.16,
-            "5": 6.09,
-            "10": -1.24,
-            "20": 3.86
+            "3": 3.6,
+            "5": 8.26,
+            "10": 7.27,
+            "20": 3.53
+          }
+        }
+      ]
+    },
+    "PANW": {
+      "signal": "급락웅줍",
+      "years": 3,
+      "total": 28,
+      "cases": [
+        {
+          "date": "2026-10-23",
+          "entry_date": "2026-10-26",
+          "entry_price": 384.19,
+          "returns": {
+            "3": -0.94,
+            "5": -8.45,
+            "10": null,
+            "20": null
           }
         },
         {
-          "date": "2025-03-06",
-          "entry_date": "2025-03-07",
-          "entry_price": 89.76,
+          "date": "2026-10-16",
+          "entry_date": "2026-10-19",
+          "entry_price": 356.0,
           "returns": {
-            "3": 2.46,
-            "5": 2.27,
-            "10": 6.98,
-            "20": -4.65
+            "3": -0.3,
+            "5": 9.68,
+            "10": -1.2,
+            "20": null
           }
         },
         {
-          "date": "2024-08-08",
-          "entry_date": "2024-08-09",
-          "entry_price": 62.3,
+          "date": "2026-09-14",
+          "entry_date": "2026-09-15",
+          "entry_price": 368.43,
           "returns": {
-            "3": 6.21,
-            "5": 8.2,
-            "10": 10.23,
-            "20": 8.42
+            "3": -1.32,
+            "5": 1.67,
+            "10": 5.42,
+            "20": 7.76
+          }
+        },
+        {
+          "date": "2026-09-02",
+          "entry_date": "2026-09-03",
+          "entry_price": 333.31,
+          "returns": {
+            "3": 0.54,
+            "5": -0.8,
+            "10": 9.08,
+            "20": 20.98
+          }
+        },
+        {
+          "date": "2026-03-31",
+          "entry_date": "2026-04-01",
+          "entry_price": 161.45,
+          "returns": {
+            "3": 5.22,
+            "5": 3.43,
+            "10": 3.42,
+            "20": 11.07
+          }
+        },
+        {
+          "date": "2026-03-26",
+          "entry_date": "2026-03-27",
+          "entry_price": 147.55,
+          "returns": {
+            "3": 8.89,
+            "5": 9.76,
+            "10": 10.14,
+            "20": 23.96
+          }
+        },
+        {
+          "date": "2026-03-02",
+          "entry_date": "2026-03-03",
+          "entry_price": 149.07,
+          "returns": {
+            "3": 10.72,
+            "5": 11.08,
+            "10": 13.5,
+            "20": 7.55
+          }
+        },
+        {
+          "date": "2026-02-13",
+          "entry_date": "2026-02-17",
+          "entry_price": 165.68,
+          "returns": {
+            "3": -10.25,
+            "5": -14.49,
+            "10": -5.79,
+            "20": 2.12
+          }
+        },
+        {
+          "date": "2026-01-20",
+          "entry_date": "2026-01-21",
+          "entry_price": 184.46,
+          "returns": {
+            "3": -0.13,
+            "5": -0.39,
+            "10": -9.62,
+            "20": -18.14
+          }
+        },
+        {
+          "date": "2026-01-06",
+          "entry_date": "2026-01-07",
+          "entry_price": 188.09,
+          "returns": {
+            "3": 0.42,
+            "5": 1.51,
+            "10": -3.09,
+            "20": -17.71
+          }
+        },
+        {
+          "date": "2026-01-02",
+          "entry_date": "2026-01-05",
+          "entry_price": 183.0,
+          "returns": {
+            "3": 4.26,
+            "5": 3.21,
+            "10": 0.58,
+            "20": -9.16
+          }
+        },
+        {
+          "date": "2025-12-02",
+          "entry_date": "2025-12-03",
+          "entry_price": 190.08,
+          "returns": {
+            "3": 2.77,
+            "5": 1.52,
+            "10": -3.49,
+            "20": -5.63
+          }
+        },
+        {
+          "date": "2025-11-20",
+          "entry_date": "2025-11-21",
+          "entry_price": 185.01,
+          "returns": {
+            "3": 0.18,
+            "5": 1.47,
+            "10": 5.59,
+            "20": 2.42
+          }
+        },
+        {
+          "date": "2025-08-12",
+          "entry_date": "2025-08-13",
+          "entry_price": 180.15,
+          "returns": {
+            "3": -2.21,
+            "5": 2.38,
+            "10": 4.14,
+            "20": 10.09
+          }
+        },
+        {
+          "date": "2025-07-30",
+          "entry_date": "2025-07-31",
+          "entry_price": 183.91,
+          "returns": {
+            "3": -8.06,
+            "5": -8.6,
+            "10": -5.63,
+            "20": 3.87
+          }
+        },
+        {
+          "date": "2025-04-09",
+          "entry_date": "2025-04-10",
+          "entry_price": 168.93,
+          "returns": {
+            "3": 2.73,
+            "5": -0.73,
+            "10": 5.95,
+            "20": 10.66
+          }
+        },
+        {
+          "date": "2025-03-27",
+          "entry_date": "2025-03-28",
+          "entry_price": 173.91,
+          "returns": {
+            "3": -0.42,
+            "5": -11.7,
+            "10": -3.2,
+            "20": 4.39
+          }
+        },
+        {
+          "date": "2025-03-14",
+          "entry_date": "2025-03-17",
+          "entry_price": 183.5,
+          "returns": {
+            "3": 0.28,
+            "5": 0.7,
+            "10": -7.01,
+            "20": -7.37
+          }
+        },
+        {
+          "date": "2025-03-07",
+          "entry_date": "2025-03-10",
+          "entry_price": 177.6,
+          "returns": {
+            "3": -0.72,
+            "5": 4.17,
+            "10": 4.05,
+            "20": -14.17
+          }
+        },
+        {
+          "date": "2025-01-16",
+          "entry_date": "2025-01-17",
+          "entry_price": 181.12,
+          "returns": {
+            "3": 3.42,
+            "5": 4.52,
+            "10": 0.92,
+            "20": 15.0
           }
         }
       ]
@@ -5308,78 +5863,70 @@
     "reason": "10개 지표의 데이터가 있습니다. 각 기준일을 확인하세요.",
     "values": {
       "나스닥-100": {
-        "value": 28437.1699,
-        "updated_at": "2026-11-04",
+        "value": 26629.8105,
+        "updated_at": "2026-11-05",
         "source": "Yahoo Finance",
         "symbol": "^NDX"
       },
       "S&P 500": {
-        "value": 7688.6201,
-        "updated_at": "2026-11-04",
+        "value": 7353.73,
+        "updated_at": "2026-11-05",
         "source": "Yahoo Finance",
         "symbol": "^GSPC"
       },
       "미국 2년물 금리": {
-        "value": 4.61,
-        "updated_at": "2026-11-03",
+        "value": 4.58,
+        "updated_at": "2026-11-04",
         "source": "FRED DGS2",
         "symbol": "DGS2"
       },
       "미국 10년물 금리": {
-        "value": 4.904,
-        "updated_at": "2026-11-05",
+        "value": 4.88,
+        "updated_at": "2026-11-06",
         "source": "Yahoo Finance",
         "symbol": "^TNX"
       },
       "VIX": {
-        "value": 16.75,
-        "updated_at": "2026-11-05",
+        "value": 27.04,
+        "updated_at": "2026-11-06",
         "source": "Yahoo Finance",
         "symbol": "^VIX"
       },
       "금": {
-        "value": 4131.8999,
-        "updated_at": "2026-11-05",
+        "value": 4054.8,
+        "updated_at": "2026-11-06",
         "source": "Yahoo Finance",
         "symbol": "GC=F"
       },
       "원·달러 환율": {
-        "value": 1343.58,
-        "updated_at": "2026-11-05",
+        "value": 1357.85,
+        "updated_at": "2026-11-06",
         "source": "Yahoo Finance",
         "symbol": "KRW=X"
       },
       "비트코인": {
-        "value": 79672.9062,
-        "updated_at": "2026-11-05",
+        "value": 75844.1406,
+        "updated_at": "2026-11-06",
         "source": "Yahoo Finance",
         "symbol": "BTC-USD"
       },
       "달러 인덱스": {
-        "value": 101.642,
-        "updated_at": "2026-11-05",
+        "value": 102.219,
+        "updated_at": "2026-11-06",
         "source": "Yahoo Finance",
         "symbol": "DX-Y.NYB"
       },
       "비트코인 공포지수": {
-        "value": 50.0,
-        "updated_at": "2026-11-05",
+        "value": 28.0,
+        "updated_at": "2026-11-06",
         "source": "alternative.me (Bitcoin Fear & Greed)",
         "symbol": "FNG",
-        "classification": "Neutral"
+        "classification": "Fear"
       }
     }
   },
   "macro_history": {
     "나스닥-100": [
-      {
-        "date": "2025-11-05",
-        "open": 25433.2207,
-        "high": 25750.8809,
-        "low": 25364.9004,
-        "close": 25620.0293,
-        "volume": 10026890000
-      },
       {
         "date": "2025-11-06",
         "open": 25568.2402,
@@ -7379,17 +7926,17 @@
         "low": 28276.2207,
         "close": 28437.1699,
         "volume": 9953250000
+      },
+      {
+        "date": "2026-11-05",
+        "open": 28078.1895,
+        "high": 28078.1895,
+        "low": 26606.4297,
+        "close": 26629.8105,
+        "volume": 12833900000
       }
     ],
     "S&P 500": [
-      {
-        "date": "2025-11-05",
-        "open": 6769.77,
-        "high": 6829.7798,
-        "low": 6763.1099,
-        "close": 6796.29,
-        "volume": 5939600000
-      },
       {
         "date": "2025-11-06",
         "open": 6787.5898,
@@ -9389,6 +9936,14 @@
         "low": 7635.8101,
         "close": 7688.6201,
         "volume": 7390830000
+      },
+      {
+        "date": "2026-11-05",
+        "open": 7678.7202,
+        "high": 7681.29,
+        "low": 7350.3501,
+        "close": 7353.73,
+        "volume": 7654840000
       }
     ],
     "미국 2년물 금리": [
@@ -110215,17 +110770,17 @@
         "low": 4.61,
         "close": 4.61,
         "volume": 0
+      },
+      {
+        "date": "2026-11-04",
+        "open": 4.58,
+        "high": 4.58,
+        "low": 4.58,
+        "close": 4.58,
+        "volume": 0
       }
     ],
     "미국 10년물 금리": [
-      {
-        "date": "2025-11-05",
-        "open": 4.097,
-        "high": 4.161,
-        "low": 4.093,
-        "close": 4.157,
-        "volume": 0
-      },
       {
         "date": "2025-11-06",
         "open": 4.132,
@@ -112229,21 +112784,21 @@
       {
         "date": "2026-11-05",
         "open": 4.904,
-        "high": 4.909,
-        "low": 4.9,
-        "close": 4.904,
+        "high": 4.917,
+        "low": 4.814,
+        "close": 4.837,
+        "volume": 0
+      },
+      {
+        "date": "2026-11-06",
+        "open": 4.874,
+        "high": 4.903,
+        "low": 4.868,
+        "close": 4.88,
         "volume": 0
       }
     ],
     "VIX": [
-      {
-        "date": "2025-11-05",
-        "open": 19.37,
-        "high": 20.02,
-        "low": 17.31,
-        "close": 18.01,
-        "volume": 0
-      },
       {
         "date": "2025-11-06",
         "open": 18.36,
@@ -114263,21 +114818,21 @@
       {
         "date": "2026-11-05",
         "open": 17.14,
-        "high": 17.19,
+        "high": 28.36,
         "low": 16.7,
-        "close": 16.75,
+        "close": 28.18,
+        "volume": 0
+      },
+      {
+        "date": "2026-11-06",
+        "open": 27.68,
+        "high": 27.76,
+        "low": 25.38,
+        "close": 27.04,
         "volume": 0
       }
     ],
     "금": [
-      {
-        "date": "2025-11-05",
-        "open": 3939.5,
-        "high": 4000.7,
-        "low": 3935.7,
-        "close": 3992.8999,
-        "volume": 175161
-      },
       {
         "date": "2025-11-06",
         "open": 3992.3999,
@@ -116276,26 +116831,26 @@
         "high": 4081.2,
         "low": 3928.2,
         "close": 4073.0,
-        "volume": 163000
+        "volume": 232561
       },
       {
         "date": "2026-11-05",
-        "open": 3940.8,
+        "open": 4075.3999,
         "high": 4155.7998,
         "low": 4067.0,
-        "close": 4131.8999,
-        "volume": 98932
+        "close": 4113.5,
+        "volume": 232561
+      },
+      {
+        "date": "2026-11-06",
+        "open": 4098.5,
+        "high": 4116.2002,
+        "low": 4035.6001,
+        "close": 4054.8,
+        "volume": 91273
       }
     ],
     "원·달러 환율": [
-      {
-        "date": "2025-11-05",
-        "open": 1439.8101,
-        "high": 1449.27,
-        "low": 1439.8101,
-        "close": 1439.8101,
-        "volume": 0
-      },
       {
         "date": "2025-11-06",
         "open": 1439.74,
@@ -118362,22 +118917,22 @@
       },
       {
         "date": "2026-11-05",
-        "open": 1340.6801,
-        "high": 1345.11,
-        "low": 1337.58,
-        "close": 1343.58,
+        "open": 1340.04,
+        "high": 1354.17,
+        "low": 1337.86,
+        "close": 1340.0699,
+        "volume": 0
+      },
+      {
+        "date": "2026-11-06",
+        "open": 1357.03,
+        "high": 1361.9301,
+        "low": 1350.6801,
+        "close": 1357.85,
         "volume": 0
       }
     ],
     "비트코인": [
-      {
-        "date": "2025-11-05",
-        "open": 101579.2344,
-        "high": 104534.7031,
-        "low": 98989.9141,
-        "close": 103891.8359,
-        "volume": 77584934804
-      },
       {
         "date": "2025-11-06",
         "open": 103893.6641,
@@ -121292,22 +121847,22 @@
       },
       {
         "date": "2026-11-05",
-        "open": 80428.3047,
-        "high": 80794.2344,
-        "low": 79479.3047,
-        "close": 79672.9062,
-        "volume": 35563048960
+        "open": 80405.2891,
+        "high": 80833.6172,
+        "low": 75114.2891,
+        "close": 75942.125,
+        "volume": 48407763452
+      },
+      {
+        "date": "2026-11-06",
+        "open": 75982.8125,
+        "high": 76282.3984,
+        "low": 75244.5781,
+        "close": 75844.1406,
+        "volume": 47961370624
       }
     ],
     "달러 인덱스": [
-      {
-        "date": "2025-11-05",
-        "open": 100.18,
-        "high": 100.36,
-        "low": 100.06,
-        "close": 100.2,
-        "volume": 0
-      },
       {
         "date": "2025-11-06",
         "open": 100.11,
@@ -123310,26 +123865,26 @@
       },
       {
         "date": "2026-11-05",
-        "open": 101.474,
-        "high": 101.659,
-        "low": 101.195,
-        "close": 101.642,
+        "open": 101.47,
+        "high": 101.71,
+        "low": 101.2,
+        "close": 101.55,
+        "volume": 0
+      },
+      {
+        "date": "2026-11-06",
+        "open": 101.494,
+        "high": 102.224,
+        "low": 101.553,
+        "close": 102.219,
         "volume": 0
       }
     ],
     "비트코인 공포지수": [
       {
-        "date": "2025-10-02",
-        "open": 64.0,
-        "high": 64.0,
-        "low": 64.0,
-        "close": 64.0,
-        "volume": 0
-      },
-      {
         "date": "2025-10-03",
-        "open": 64.0,
-        "high": 64.0,
+        "open": 63.0,
+        "high": 63.0,
         "low": 63.0,
         "close": 63.0,
         "volume": 0
@@ -126517,19 +127072,19 @@
         "low": 34.0,
         "close": 50.0,
         "volume": 0
+      },
+      {
+        "date": "2026-11-06",
+        "open": 50.0,
+        "high": 50.0,
+        "low": 28.0,
+        "close": 28.0,
+        "volume": 0
       }
     ]
   },
   "price_history": {
     "AAPL": [
-      {
-        "date": "2025-11-04",
-        "open": 268.33,
-        "high": 271.49,
-        "low": 267.62,
-        "close": 270.04,
-        "volume": 49274800
-      },
       {
         "date": "2025-11-05",
         "open": 268.61,
@@ -128536,18 +129091,18 @@
         "high": 354.5,
         "low": 340.99,
         "close": 349.51,
-        "volume": 89523300
+        "volume": 89637700
+      },
+      {
+        "date": "2026-11-05",
+        "open": 353.89,
+        "high": 355.38,
+        "low": 342.06,
+        "close": 344.17,
+        "volume": 75457100
       }
     ],
     "MSFT": [
-      {
-        "date": "2025-11-04",
-        "open": 511.76,
-        "high": 515.55,
-        "low": 507.84,
-        "close": 514.33,
-        "volume": 20958700
-      },
       {
         "date": "2025-11-05",
         "open": 513.3,
@@ -130554,18 +131109,18 @@
         "high": 559.15,
         "low": 542.3,
         "close": 555.8,
-        "volume": 50759800
+        "volume": 50807800
+      },
+      {
+        "date": "2026-11-05",
+        "open": 554.94,
+        "high": 557.62,
+        "low": 532.68,
+        "close": 535.93,
+        "volume": 42355300
       }
     ],
     "NVDA": [
-      {
-        "date": "2025-11-04",
-        "open": 203.0,
-        "high": 203.97,
-        "low": 197.93,
-        "close": 198.69,
-        "volume": 188919300
-      },
       {
         "date": "2025-11-05",
         "open": 198.77,
@@ -132572,18 +133127,18 @@
         "high": 206.79,
         "low": 199.68,
         "close": 200.13,
-        "volume": 148337800
+        "volume": 149033300
+      },
+      {
+        "date": "2026-11-05",
+        "open": 196.07,
+        "high": 196.25,
+        "low": 181.46,
+        "close": 181.6,
+        "volume": 303158900
       }
     ],
     "AMZN": [
-      {
-        "date": "2025-11-04",
-        "open": 250.38,
-        "high": 257.01,
-        "low": 248.66,
-        "close": 249.32,
-        "volume": 51546300
-      },
       {
         "date": "2025-11-05",
         "open": 249.03,
@@ -134590,18 +135145,18 @@
         "high": 271.49,
         "low": 263.85,
         "close": 266.03,
-        "volume": 93057800
+        "volume": 93162200
+      },
+      {
+        "date": "2026-11-05",
+        "open": 271.43,
+        "high": 273.23,
+        "low": 252.27,
+        "close": 260.21,
+        "volume": 85365600
       }
     ],
     "META": [
-      {
-        "date": "2025-11-04",
-        "open": 628.04,
-        "high": 641.74,
-        "low": 626.01,
-        "close": 627.32,
-        "volume": 27356600
-      },
       {
         "date": "2025-11-05",
         "open": 632.31,
@@ -136608,18 +137163,18 @@
         "high": 643.09,
         "low": 624.5,
         "close": 630.0,
-        "volume": 32401000
+        "volume": 32441800
+      },
+      {
+        "date": "2026-11-05",
+        "open": 632.3,
+        "high": 634.99,
+        "low": 583.8,
+        "close": 605.08,
+        "volume": 28514900
       }
     ],
     "AVGO": [
-      {
-        "date": "2025-11-04",
-        "open": 358.52,
-        "high": 368.95,
-        "low": 351.0,
-        "close": 351.94,
-        "volume": 24047500
-      },
       {
         "date": "2025-11-05",
         "open": 350.89,
@@ -138626,18 +139181,18 @@
         "high": 334.12,
         "low": 321.74,
         "close": 325.48,
-        "volume": 23824200
+        "volume": 23881800
+      },
+      {
+        "date": "2026-11-05",
+        "open": 311.89,
+        "high": 314.0,
+        "low": 290.12,
+        "close": 291.53,
+        "volume": 53594200
       }
     ],
     "GOOGL": [
-      {
-        "date": "2025-11-04",
-        "open": 276.75,
-        "high": 281.27,
-        "low": 276.26,
-        "close": 277.54,
-        "volume": 30078400
-      },
       {
         "date": "2025-11-05",
         "open": 278.87,
@@ -140644,18 +141199,18 @@
         "high": 296.49,
         "low": 283.4,
         "close": 288.93,
-        "volume": 51435300
+        "volume": 51550300
+      },
+      {
+        "date": "2026-11-05",
+        "open": 293.97,
+        "high": 295.6,
+        "low": 277.07,
+        "close": 282.57,
+        "volume": 53043900
       }
     ],
     "GOOG": [
-      {
-        "date": "2025-11-04",
-        "open": 277.065,
-        "high": 281.834,
-        "low": 276.865,
-        "close": 278.06,
-        "volume": 18123700
-      },
       {
         "date": "2025-11-05",
         "open": 279.38,
@@ -142662,18 +143217,18 @@
         "high": 294.4,
         "low": 281.33,
         "close": 287.3,
-        "volume": 31638100
+        "volume": 31709200
+      },
+      {
+        "date": "2026-11-05",
+        "open": 291.805,
+        "high": 293.64,
+        "low": 276.2,
+        "close": 281.74,
+        "volume": 40827900
       }
     ],
     "COST": [
-      {
-        "date": "2025-11-04",
-        "open": 933.21,
-        "high": 941.17,
-        "low": 928.97,
-        "close": 940.74,
-        "volume": 2554500
-      },
       {
         "date": "2025-11-05",
         "open": 940.0,
@@ -144681,17 +145236,17 @@
         "low": 1028.5,
         "close": 1046.47,
         "volume": 2582800
+      },
+      {
+        "date": "2026-11-05",
+        "open": 1070.99,
+        "high": 1081.55,
+        "low": 1061.0,
+        "close": 1065.59,
+        "volume": 4732800
       }
     ],
     "NFLX": [
-      {
-        "date": "2025-11-04",
-        "open": 109.999,
-        "high": 110.46,
-        "low": 108.668,
-        "close": 109.296,
-        "volume": 38718000
-      },
       {
         "date": "2025-11-05",
         "open": 108.5,
@@ -146698,18 +147253,18 @@
         "high": 66.78,
         "low": 64.02,
         "close": 66.39,
-        "volume": 49705800
+        "volume": 49790700
+      },
+      {
+        "date": "2026-11-05",
+        "open": 67.29,
+        "high": 67.49,
+        "low": 64.67,
+        "close": 65.56,
+        "volume": 49917100
       }
     ],
     "TSLA": [
-      {
-        "date": "2025-11-04",
-        "open": 454.46,
-        "high": 460.22,
-        "low": 443.6,
-        "close": 444.26,
-        "volume": 87756600
-      },
       {
         "date": "2025-11-05",
         "open": 452.05,
@@ -148716,18 +149271,18 @@
         "high": 392.04,
         "low": 375.5,
         "close": 385.19,
-        "volume": 47673700
+        "volume": 47805800
+      },
+      {
+        "date": "2026-11-05",
+        "open": 374.12,
+        "high": 374.3,
+        "low": 338.15,
+        "close": 343.69,
+        "volume": 79133000
       }
     ],
     "AMD": [
-      {
-        "date": "2025-11-04",
-        "open": 250.35,
-        "high": 257.38,
-        "low": 247.39,
-        "close": 250.05,
-        "volume": 56491800
-      },
       {
         "date": "2025-11-05",
         "open": 243.24,
@@ -150734,18 +151289,18 @@
         "high": 514.61,
         "low": 476.5,
         "close": 488.78,
-        "volume": 50826900
+        "volume": 50984800
+      },
+      {
+        "date": "2026-11-05",
+        "open": 452.5,
+        "high": 456.2,
+        "low": 402.1,
+        "close": 404.4,
+        "volume": 70453900
       }
     ],
     "ADBE": [
-      {
-        "date": "2025-11-04",
-        "open": 335.02,
-        "high": 340.55,
-        "low": 332.81,
-        "close": 335.35,
-        "volume": 3694300
-      },
       {
         "date": "2025-11-05",
         "open": 332.61,
@@ -152753,17 +153308,17 @@
         "low": 246.09,
         "close": 248.48,
         "volume": 4378000
+      },
+      {
+        "date": "2026-11-05",
+        "open": 250.59,
+        "high": 252.1,
+        "low": 243.28,
+        "close": 246.44,
+        "volume": 5908100
       }
     ],
     "PEP": [
-      {
-        "date": "2025-11-04",
-        "open": 144.7,
-        "high": 144.93,
-        "low": 142.06,
-        "close": 142.9,
-        "volume": 8302900
-      },
       {
         "date": "2025-11-05",
         "open": 142.9,
@@ -154771,17 +155326,17 @@
         "low": 138.82,
         "close": 142.42,
         "volume": 12078200
+      },
+      {
+        "date": "2026-11-05",
+        "open": 144.05,
+        "high": 145.55,
+        "low": 142.36,
+        "close": 142.71,
+        "volume": 13163600
       }
     ],
     "CSCO": [
-      {
-        "date": "2025-11-04",
-        "open": 73.9,
-        "high": 73.99,
-        "low": 71.98,
-        "close": 72.32,
-        "volume": 22345000
-      },
       {
         "date": "2025-11-05",
         "open": 72.22,
@@ -156789,17 +157344,17 @@
         "low": 101.82,
         "close": 103.61,
         "volume": 29518000
+      },
+      {
+        "date": "2026-11-05",
+        "open": 100.21,
+        "high": 102.14,
+        "low": 95.43,
+        "close": 95.72,
+        "volume": 37433700
       }
     ],
     "QCOM": [
-      {
-        "date": "2025-11-04",
-        "open": 177.48,
-        "high": 179.34,
-        "low": 172.29,
-        "close": 172.84,
-        "volume": 12323600
-      },
       {
         "date": "2025-11-05",
         "open": 174.76,
@@ -158806,18 +159361,18 @@
         "high": 174.0,
         "low": 162.75,
         "close": 173.19,
-        "volume": 22121200
+        "volume": 22267900
+      },
+      {
+        "date": "2026-11-05",
+        "open": 150.06,
+        "high": 160.8,
+        "low": 148.25,
+        "close": 156.75,
+        "volume": 40067300
       }
     ],
     "INTC": [
-      {
-        "date": "2025-11-04",
-        "open": 38.14,
-        "high": 38.25,
-        "low": 36.63,
-        "close": 37.03,
-        "volume": 102250300
-      },
       {
         "date": "2025-11-05",
         "open": 37.42,
@@ -160824,18 +161379,18 @@
         "high": 60.2,
         "low": 56.77,
         "close": 58.27,
-        "volume": 188619400
+        "volume": 189308900
+      },
+      {
+        "date": "2026-11-05",
+        "open": 56.51,
+        "high": 56.73,
+        "low": 51.51,
+        "close": 52.25,
+        "volume": 267415600
       }
     ],
     "AMAT": [
-      {
-        "date": "2025-11-04",
-        "open": 231.42,
-        "high": 236.97,
-        "low": 229.77,
-        "close": 230.19,
-        "volume": 6896400
-      },
       {
         "date": "2025-11-05",
         "open": 230.19,
@@ -162843,17 +163398,17 @@
         "low": 362.93,
         "close": 369.4,
         "volume": 7901700
+      },
+      {
+        "date": "2026-11-05",
+        "open": 347.6,
+        "high": 350.0,
+        "low": 316.95,
+        "close": 319.25,
+        "volume": 17004100
       }
     ],
     "TXN": [
-      {
-        "date": "2025-11-04",
-        "open": 161.18,
-        "high": 162.31,
-        "low": 158.13,
-        "close": 159.36,
-        "volume": 11462300
-      },
       {
         "date": "2025-11-05",
         "open": 159.39,
@@ -164861,17 +165416,17 @@
         "low": 303.9,
         "close": 311.49,
         "volume": 10154100
+      },
+      {
+        "date": "2026-11-05",
+        "open": 301.92,
+        "high": 307.0,
+        "low": 277.87,
+        "close": 278.15,
+        "volume": 19184800
       }
     ],
     "INTU": [
-      {
-        "date": "2025-11-04",
-        "open": 676.19,
-        "high": 676.19,
-        "low": 653.54,
-        "close": 660.42,
-        "volume": 1542700
-      },
       {
         "date": "2025-11-05",
         "open": 656.85,
@@ -166879,17 +167434,17 @@
         "low": 351.59,
         "close": 356.64,
         "volume": 3409000
+      },
+      {
+        "date": "2026-11-05",
+        "open": 362.61,
+        "high": 364.34,
+        "low": 348.22,
+        "close": 354.84,
+        "volume": 4301400
       }
     ],
     "AMGN": [
-      {
-        "date": "2025-11-04",
-        "open": 298.71,
-        "high": 299.06,
-        "low": 294.48,
-        "close": 296.7,
-        "volume": 3412500
-      },
       {
         "date": "2025-11-05",
         "open": 303.13,
@@ -168897,17 +169452,17 @@
         "low": 464.13,
         "close": 478.48,
         "volume": 4618500
+      },
+      {
+        "date": "2026-11-05",
+        "open": 483.99,
+        "high": 483.99,
+        "low": 459.65,
+        "close": 460.28,
+        "volume": 4105800
       }
     ],
     "HON": [
-      {
-        "date": "2025-11-04",
-        "open": 207.2994,
-        "high": 207.6665,
-        "low": 204.1741,
-        "close": 206.0409,
-        "volume": 5460695
-      },
       {
         "date": "2025-11-05",
         "open": 205.6843,
@@ -170915,17 +171470,17 @@
         "low": 222.65,
         "close": 228.47,
         "volume": 3696500
+      },
+      {
+        "date": "2026-11-05",
+        "open": 228.09,
+        "high": 229.11,
+        "low": 215.24,
+        "close": 215.78,
+        "volume": 3352900
       }
     ],
     "BKNG": [
-      {
-        "date": "2025-11-04",
-        "open": 199.94,
-        "high": 203.2,
-        "low": 198.1416,
-        "close": 199.6704,
-        "volume": 5670000
-      },
       {
         "date": "2025-11-05",
         "open": 199.2404,
@@ -172933,17 +173488,17 @@
         "low": 160.0,
         "close": 170.97,
         "volume": 14634100
+      },
+      {
+        "date": "2026-11-05",
+        "open": 171.96,
+        "high": 174.3,
+        "low": 164.32,
+        "close": 168.72,
+        "volume": 12138700
       }
     ],
     "SBUX": [
-      {
-        "date": "2025-11-04",
-        "open": 81.18,
-        "high": 81.2,
-        "low": 77.99,
-        "close": 79.6,
-        "volume": 17774600
-      },
       {
         "date": "2025-11-05",
         "open": 79.6,
@@ -174951,17 +175506,17 @@
         "low": 105.88,
         "close": 109.7,
         "volume": 10192700
+      },
+      {
+        "date": "2026-11-05",
+        "open": 110.12,
+        "high": 111.5,
+        "low": 106.03,
+        "close": 106.16,
+        "volume": 13519400
       }
     ],
     "ADP": [
-      {
-        "date": "2025-11-04",
-        "open": 259.61,
-        "high": 262.25,
-        "low": 256.87,
-        "close": 259.22,
-        "volume": 2555000
-      },
       {
         "date": "2025-11-05",
         "open": 256.47,
@@ -176969,17 +177524,17 @@
         "low": 295.15,
         "close": 303.54,
         "volume": 3687600
+      },
+      {
+        "date": "2026-11-05",
+        "open": 308.06,
+        "high": 310.98,
+        "low": 304.28,
+        "close": 307.14,
+        "volume": 3294200
       }
     ],
     "GILD": [
-      {
-        "date": "2025-11-04",
-        "open": 123.15,
-        "high": 123.57,
-        "low": 119.24,
-        "close": 123.0,
-        "volume": 8467200
-      },
       {
         "date": "2025-11-05",
         "open": 122.2,
@@ -178987,17 +179542,17 @@
         "low": 168.84,
         "close": 174.48,
         "volume": 9635400
+      },
+      {
+        "date": "2026-11-05",
+        "open": 174.54,
+        "high": 176.58,
+        "low": 167.09,
+        "close": 167.57,
+        "volume": 11352700
       }
     ],
     "VRTX": [
-      {
-        "date": "2025-11-04",
-        "open": 418.55,
-        "high": 430.71,
-        "low": 403.16,
-        "close": 421.67,
-        "volume": 2365500
-      },
       {
         "date": "2025-11-05",
         "open": 417.7,
@@ -181005,17 +181560,17 @@
         "low": 527.38,
         "close": 549.04,
         "volume": 1832400
+      },
+      {
+        "date": "2026-11-05",
+        "open": 556.85,
+        "high": 557.85,
+        "low": 540.02,
+        "close": 542.5,
+        "volume": 2482700
       }
     ],
     "ADI": [
-      {
-        "date": "2025-11-04",
-        "open": 233.01,
-        "high": 233.78,
-        "low": 228.76,
-        "close": 229.38,
-        "volume": 3956600
-      },
       {
         "date": "2025-11-05",
         "open": 230.09,
@@ -183023,17 +183578,17 @@
         "low": 396.76,
         "close": 406.24,
         "volume": 5502600
+      },
+      {
+        "date": "2026-11-05",
+        "open": 387.25,
+        "high": 400.15,
+        "low": 360.13,
+        "close": 361.01,
+        "volume": 13100900
       }
     ],
     "REGN": [
-      {
-        "date": "2025-11-04",
-        "open": 643.78,
-        "high": 646.22,
-        "low": 625.14,
-        "close": 628.0,
-        "volume": 1030900
-      },
       {
         "date": "2025-11-05",
         "open": 631.1,
@@ -185041,17 +185596,17 @@
         "low": 927.42,
         "close": 930.67,
         "volume": 1395000
+      },
+      {
+        "date": "2026-11-05",
+        "open": 938.51,
+        "high": 948.11,
+        "low": 901.53,
+        "close": 902.9,
+        "volume": 1407000
       }
     ],
     "PANW": [
-      {
-        "date": "2025-11-04",
-        "open": 215.72,
-        "high": 218.0,
-        "low": 212.35,
-        "close": 214.52,
-        "volume": 6361800
-      },
       {
         "date": "2025-11-05",
         "open": 215.2,
@@ -187059,6 +187614,14 @@
         "low": 341.45,
         "close": 348.04,
         "volume": 5729200
+      },
+      {
+        "date": "2026-11-05",
+        "open": 337.55,
+        "high": 339.0,
+        "low": 312.12,
+        "close": 314.67,
+        "volume": 13320100
       }
     ]
   },
@@ -187068,15 +187631,15 @@
     "symbols_attempted": 30,
     "symbols_failed": 0,
     "analyst": {
-      "attempted": 2,
-      "ok": 2,
+      "attempted": 5,
+      "ok": 5,
       "failed": []
     },
     "version": "2026-10-12.1",
     "rule": "웅덩이매매법 V12",
     "cases": {
-      "attempted": 2,
-      "ok": 2
+      "attempted": 5,
+      "ok": 5
     },
     "warning": "나스닥-100 전체가 아닌 대체 종목 목록입니다."
   }
